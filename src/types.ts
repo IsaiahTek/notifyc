@@ -4,6 +4,8 @@
 export type ChannelType = 'inapp' | 'push' | 'email' | 'sms' | 'webhook';
 export type NotificationStatus = 'pending' | 'sent' | 'delivered' | 'failed' | 'read';
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type RealtimeTransport = 'sse' | 'websocket' | 'polling' | 'none';
+export type RealtimeStatus = 'idle' | 'connecting' | 'connected' | 'fallback' | 'error';
 
 export interface NotificationAction {
   id: string;
@@ -82,6 +84,22 @@ export interface NotificationStats {
   byPriority: Record<NotificationPriority, number>;
 }
 
+export interface NotificationRealtimeState {
+  transport: RealtimeTransport | null;
+  status: RealtimeStatus;
+  lastEvent: string | null;
+  lastError: string | null;
+  updatedAt: Date | null;
+}
+
+export interface NotificationDebugEvent {
+  source: 'initialize' | 'sse' | 'websocket' | 'polling';
+  event: string;
+  level: 'info' | 'warn' | 'error';
+  timestamp: string;
+  details?: Record<string, unknown>;
+}
+
 export interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
@@ -91,19 +109,22 @@ export interface NotificationState {
   error: string | null;
   isConnected: boolean;
   lastSync: Date | null;
+  realtime: NotificationRealtimeState;
   key: string
 }
 
 export interface NotificationConfig {
   apiUrl: string;
   userId: string;
-  realtimeTransport?: 'sse' | 'websocket' | 'polling' | 'none';
+  realtimeTransport?: RealtimeTransport;
   sseUrl?: string;
   ssePath?: string;
   sseAuthQueryParam?: string;
   sseConnectTimeoutMs?: number;
   wsUrl?: string;
   pollInterval?: number;
+  debug?: boolean;
+  onDebugEvent?: (event: NotificationDebugEvent) => void;
   getAuthToken?: () => Promise<string | null>;
   dataLocator?: (response: any) => any
 }

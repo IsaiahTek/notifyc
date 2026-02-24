@@ -61,22 +61,48 @@ exports.apiClient = null;
 function initializeNotifications(config, onInitialized) {
     var _this = this;
     exports.apiClient = new api_client_1.NotificationApiClient(config);
+    var getState = function () {
+        var snapshot = store_1.notificationStore.snapshot;
+        return Array.isArray(snapshot) ? snapshot[0] : snapshot;
+    };
+    var emitDebug = function (source, event, level, details) {
+        var _a;
+        if (level === void 0) { level = 'info'; }
+        var payload = __assign({ source: source, event: event, level: level, timestamp: new Date().toISOString() }, (details ? { details: details } : {}));
+        if (config.debug) {
+            var method = level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log';
+            console[method]('[notifyc-react]', payload);
+        }
+        (_a = config.onDebugEvent) === null || _a === void 0 ? void 0 : _a.call(config, payload);
+    };
+    var updateRealtime = function (transport, status, event, error) {
+        if (error === void 0) { error = null; }
+        var state = getState();
+        var realtime = {
+            transport: transport,
+            status: status,
+            lastEvent: event,
+            lastError: error,
+            updatedAt: new Date(),
+        };
+        store_1.notificationStore.update(__assign(__assign({}, state), { realtime: realtime }), "key");
+    };
     var onMessage = function (data) {
         console.log("GOT NEW NOTIFICATION: ", data);
         if (data.type === 'notification') {
             (0, handlers_1.addNotification)(data.notification);
         }
         else if (data.type === 'unread-count') {
-            var state = store_1.notificationStore.snapshot[0];
+            var state = getState();
             store_1.notificationStore.update(__assign(__assign({}, state), { unreadCount: data.count }), "key");
         }
         else if (data.type === 'initial-data') {
-            var state = store_1.notificationStore.snapshot[0];
+            var state = getState();
             store_1.notificationStore.update(__assign(__assign({}, state), { notifications: data.notifications, unreadCount: data.unreadCount, isConnected: true }), "key");
         }
     };
     var connectRealtime = function () { return __awaiter(_this, void 0, void 0, function () {
-        var preferredTransport, connected, state;
+        var preferredTransport, connected, connectedTransport, state, state;
         var _this = this;
         var _a;
         return __generator(this, function (_b) {
@@ -84,14 +110,23 @@ function initializeNotifications(config, onInitialized) {
                 case 0:
                     preferredTransport = (_a = config.realtimeTransport) !== null && _a !== void 0 ? _a : 'sse';
                     connected = false;
+                    connectedTransport = null;
+                    updateRealtime(preferredTransport, 'connecting', 'connect-start');
+                    emitDebug('initialize', 'connect-start', 'info', { preferredTransport: preferredTransport });
                     if (!(preferredTransport === 'sse')) return [3 /*break*/, 4];
                     return [4 /*yield*/, exports.apiClient.connectSSE(onMessage)];
                 case 1:
                     connected = _b.sent();
+                    if (connected)
+                        connectedTransport = 'sse';
                     if (!(!connected && config.wsUrl)) return [3 /*break*/, 3];
+                    updateRealtime('websocket', 'fallback', 'fallback-to-websocket');
+                    emitDebug('initialize', 'fallback-to-websocket', 'warn');
                     return [4 /*yield*/, exports.apiClient.connectWebSocket(onMessage)];
                 case 2:
                     connected = _b.sent();
+                    if (connected)
+                        connectedTransport = 'websocket';
                     _b.label = 3;
                 case 3: return [3 /*break*/, 9];
                 case 4:
@@ -99,18 +134,26 @@ function initializeNotifications(config, onInitialized) {
                     return [4 /*yield*/, exports.apiClient.connectWebSocket(onMessage)];
                 case 5:
                     connected = _b.sent();
+                    if (connected)
+                        connectedTransport = 'websocket';
                     if (!!connected) return [3 /*break*/, 7];
+                    updateRealtime('sse', 'fallback', 'fallback-to-sse');
+                    emitDebug('initialize', 'fallback-to-sse', 'warn');
                     return [4 /*yield*/, exports.apiClient.connectSSE(onMessage)];
                 case 6:
                     connected = _b.sent();
+                    if (connected)
+                        connectedTransport = 'sse';
                     _b.label = 7;
                 case 7: return [3 /*break*/, 9];
                 case 8:
                     if (preferredTransport === 'polling') {
                         connected = false;
+                        connectedTransport = 'polling';
                     }
                     else if (preferredTransport === 'none') {
                         connected = false;
+                        connectedTransport = 'none';
                     }
                     _b.label = 9;
                 case 9:
@@ -129,10 +172,25 @@ function initializeNotifications(config, onInitialized) {
                             });
                         }); });
                         connected = true;
+                        connectedTransport = 'polling';
+                        updateRealtime('polling', 'fallback', 'fallback-to-polling');
+                        emitDebug('initialize', 'fallback-to-polling', 'warn');
                     }
                     if (connected) {
-                        state = store_1.notificationStore.snapshot[0];
+                        state = getState();
                         store_1.notificationStore.update(__assign(__assign({}, state), { isConnected: true }), "key");
+                        updateRealtime(connectedTransport, 'connected', 'connected');
+                        emitDebug('initialize', 'connected', 'info', { transport: connectedTransport });
+                    }
+                    else if (preferredTransport === 'none') {
+                        updateRealtime('none', 'idle', 'realtime-disabled');
+                        emitDebug('initialize', 'realtime-disabled');
+                    }
+                    else {
+                        state = getState();
+                        store_1.notificationStore.update(__assign(__assign({}, state), { isConnected: false }), "key");
+                        updateRealtime(connectedTransport !== null && connectedTransport !== void 0 ? connectedTransport : preferredTransport, 'error', 'connect-failed', 'No realtime transport available');
+                        emitDebug('initialize', 'connect-failed', 'error');
                     }
                     return [2 /*return*/];
             }
@@ -151,7 +209,8 @@ function disconnectNotifications() {
     if (exports.apiClient) {
         exports.apiClient.disconnectWebSocket();
         exports.apiClient.stopPolling();
-        var state = store_1.notificationStore.snapshot;
-        store_1.notificationStore.update(__assign(__assign({}, state), { isConnected: false }), "key");
+        var snapshot = store_1.notificationStore.snapshot;
+        var state = Array.isArray(snapshot) ? snapshot[0] : snapshot;
+        store_1.notificationStore.update(__assign(__assign({}, state), { isConnected: false, realtime: __assign(__assign({}, state.realtime), { status: 'idle', lastEvent: 'disconnected', updatedAt: new Date() }) }), "key");
     }
 }

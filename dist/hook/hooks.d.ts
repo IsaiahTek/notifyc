@@ -42,3 +42,7 @@ export declare function useNotification(notificationId: string): {
  * Hook for connection status
  */
 export declare function useNotificationConnection(): boolean;
+/**
+ * Hook for realtime transport diagnostics
+ */
+export declare function useNotificationRealtime(): import("../types").NotificationRealtimeState;

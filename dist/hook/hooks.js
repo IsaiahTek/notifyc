@@ -9,6 +9,7 @@ exports.useNotificationStats = useNotificationStats;
 exports.useNotificationPreferences = useNotificationPreferences;
 exports.useNotification = useNotification;
 exports.useNotificationConnection = useNotificationConnection;
+exports.useNotificationRealtime = useNotificationRealtime;
 var react_synq_store_1 = require("react-synq-store");
 var actions_1 = require("../actions");
 var store_1 = require("../store");
@@ -93,4 +94,10 @@ function useNotification(notificationId) {
  */
 function useNotificationConnection() {
     return (0, react_synq_store_1.useStore)(store_1.notificationStore).isConnected;
+}
+/**
+ * Hook for realtime transport diagnostics
+ */
+function useNotificationRealtime() {
+    return (0, react_synq_store_1.useStore)(store_1.notificationStore).realtime;
 }

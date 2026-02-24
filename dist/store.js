@@ -14,6 +14,13 @@ var initialState = {
     error: null,
     isConnected: false,
     lastSync: null,
+    realtime: {
+        transport: null,
+        status: 'idle',
+        lastEvent: null,
+        lastError: null,
+        updatedAt: null,
+    },
     key: "notifications"
 };
 // Create global store instance

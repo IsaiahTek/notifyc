@@ -104,3 +104,10 @@ export function useNotification(notificationId: string) {
 export function useNotificationConnection() {
   return (useStore(notificationStore) as NotificationState).isConnected;
 }
+
+/**
+ * Hook for realtime transport diagnostics
+ */
+export function useNotificationRealtime() {
+  return (useStore(notificationStore) as NotificationState).realtime;
+}

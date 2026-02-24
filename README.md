@@ -157,6 +157,8 @@ interface NotificationConfig {
   sseConnectTimeoutMs?: number;// Time to wait before SSE fallback (default: 5000)
   wsUrl?: string;              // WebSocket URL (used when transport is websocket/fallback)
   pollInterval?: number;       // Polling interval (ms) fallback
+  debug?: boolean;             // Log structured realtime diagnostics to console
+  onDebugEvent?: (event) => void; // Callback for realtime lifecycle events
   
   // Optional - Auth
   getAuthToken?: () => Promise<string | null>;
@@ -236,6 +238,21 @@ const {
   preferences: NotificationPreferences | null;
   updatePreferences: (prefs: Partial<NotificationPreferences>) => Promise<void>;
 } = useNotificationPreferences();
+```
+
+#### useNotificationRealtime()
+
+Inspect transport status and fallback behavior in UI:
+
+```typescript
+const realtime = useNotificationRealtime();
+// realtime = {
+//   transport: 'sse' | 'websocket' | 'polling' | 'none' | null,
+//   status: 'idle' | 'connecting' | 'connected' | 'fallback' | 'error',
+//   lastEvent: string | null,
+//   lastError: string | null,
+//   updatedAt: Date | null
+// }
 ```
 
 #### useNotification()

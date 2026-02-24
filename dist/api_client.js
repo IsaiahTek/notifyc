@@ -83,6 +83,16 @@ var NotificationApiClient = /** @class */ (function () {
         };
         this.config = config;
     }
+    NotificationApiClient.prototype.emitDebug = function (source, event, level, details) {
+        var _a, _b;
+        if (level === void 0) { level = 'info'; }
+        var payload = __assign({ source: source, event: event, level: level, timestamp: new Date().toISOString() }, (details ? { details: details } : {}));
+        if (this.config.debug) {
+            var method = level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log';
+            console[method]('[notifyc-react]', payload);
+        }
+        (_b = (_a = this.config).onDebugEvent) === null || _b === void 0 ? void 0 : _b.call(_a, payload);
+    };
     NotificationApiClient.prototype.request = function (endpoint_1) {
         return __awaiter(this, arguments, void 0, function (endpoint, options) {
             var token, _a, response;
@@ -265,6 +275,7 @@ var NotificationApiClient = /** @class */ (function () {
                         if (token) {
                             streamUrl.searchParams.set((_d = this.config.sseAuthQueryParam) !== null && _d !== void 0 ? _d : 'token', token);
                         }
+                        this.emitDebug('sse', 'connect-attempt', 'info', { url: streamUrl.origin + streamUrl.pathname });
                         return [2 /*return*/, new Promise(function (resolve) {
                                 var _a;
                                 var settled = false;
@@ -293,11 +304,13 @@ var NotificationApiClient = /** @class */ (function () {
                                     opened = true;
                                     _this.reconnectAttempts = 0;
                                     console.log('🔌 SSE connected');
+                                    _this.emitDebug('sse', 'connected');
                                     settle(true);
                                 };
                                 _this.sse.onerror = function (error) {
                                     var _a;
                                     console.error('❌ SSE error:', error);
+                                    _this.emitDebug('sse', 'error', 'error', { opened: opened });
                                     if (!opened) {
                                         clearTimeout(timeout);
                                         (_a = _this.sse) === null || _a === void 0 ? void 0 : _a.close();
@@ -339,23 +352,28 @@ var NotificationApiClient = /** @class */ (function () {
                         this.ws = io(this.config.wsUrl, __assign(__assign({ query: {
                                 userId: this.config.userId,
                             } }, (token && { auth: { token: token } })), { withCredentials: true, transports: ['websocket', 'polling'], reconnectionAttempts: this.maxReconnectAttempts }));
+                        this.emitDebug('websocket', 'connect-attempt', 'info', { url: this.config.wsUrl });
                         this.ws.on('connect', function () {
                             console.log('🔌 WebSocket connected');
                             _this.reconnectAttempts = 0;
+                            _this.emitDebug('websocket', 'connected');
                         });
                         this.ws.on('initial-data', function (data) { return _this.handleMessage(data, onMessage); });
                         this.ws.on('notification', function (data) { return _this.handleMessage(data, onMessage); });
                         this.ws.on('unread-count', function (data) { return _this.handleMessage(data, onMessage); });
                         this.ws.on('error', function (error) {
                             console.error('❌ Socket.IO error:', error);
+                            _this.emitDebug('websocket', 'error', 'error');
                         });
                         this.ws.on('disconnect', function (reason) {
                             console.log("\uD83D\uDD0C Socket.IO disconnected. Reason: ".concat(reason));
+                            _this.emitDebug('websocket', 'disconnected', 'warn', { reason: reason });
                         });
                         return [2 /*return*/, true];
                     case 6:
                         error_1 = _b.sent();
                         console.error('Failed to initialize socket.io-client. Falling back from WebSocket transport.', error_1);
+                        this.emitDebug('websocket', 'connect-failed', 'error');
                         return [2 /*return*/, false];
                     case 7: return [2 /*return*/];
                 }
@@ -366,16 +384,19 @@ var NotificationApiClient = /** @class */ (function () {
         if (this.sse) {
             this.sse.close();
             this.sse = undefined;
+            this.emitDebug('sse', 'closed', 'warn');
         }
         if (this.ws) {
             this.ws.close();
             this.ws = undefined;
+            this.emitDebug('websocket', 'closed', 'warn');
         }
     };
     NotificationApiClient.prototype.startPolling = function (onPoll) {
         var _this = this;
         if (!this.config.pollInterval)
             return;
+        this.emitDebug('polling', 'started', 'info', { intervalMs: this.config.pollInterval });
         this.pollInterval = setInterval(function () { return __awaiter(_this, void 0, void 0, function () {
             var error_2;
             return __generator(this, function (_a) {
@@ -389,6 +410,7 @@ var NotificationApiClient = /** @class */ (function () {
                     case 2:
                         error_2 = _a.sent();
                         console.error('Polling error:', error_2);
+                        this.emitDebug('polling', 'error', 'error');
                         return [3 /*break*/, 3];
                     case 3: return [2 /*return*/];
                 }
@@ -399,6 +421,7 @@ var NotificationApiClient = /** @class */ (function () {
         if (this.pollInterval) {
             clearInterval(this.pollInterval);
             this.pollInterval = undefined;
+            this.emitDebug('polling', 'stopped', 'warn');
         }
     };
     NotificationApiClient.prototype.parseNotificationDates = function (notification) {

@@ -8,6 +8,7 @@ export declare class NotificationApiClient {
     private reconnectAttempts;
     private maxReconnectAttempts;
     constructor(config: NotificationConfig);
+    private emitDebug;
     private request;
     getNotifications(filters?: NotificationFilters): Promise<Notification[]>;
     getUnreadCount(): Promise<number>;

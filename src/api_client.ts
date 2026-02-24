@@ -4,6 +4,7 @@
 
 import { NotificationConfig } from "./types";
 import {
+  NotificationDebugEvent,
   Notification,
   NotificationFilters,
   NotificationPreferences,
@@ -21,6 +22,28 @@ export class NotificationApiClient {
 
   constructor(config: NotificationConfig) {
     this.config = config;
+  }
+
+  private emitDebug(
+    source: NotificationDebugEvent['source'],
+    event: string,
+    level: NotificationDebugEvent['level'] = 'info',
+    details?: Record<string, unknown>
+  ): void {
+    const payload: NotificationDebugEvent = {
+      source,
+      event,
+      level,
+      timestamp: new Date().toISOString(),
+      ...(details ? { details } : {})
+    };
+
+    if (this.config.debug) {
+      const method = level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log';
+      console[method]('[notifyc-react]', payload);
+    }
+
+    this.config.onDebugEvent?.(payload);
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -114,6 +137,7 @@ export class NotificationApiClient {
     if (token) {
       streamUrl.searchParams.set(this.config.sseAuthQueryParam ?? 'token', token);
     }
+    this.emitDebug('sse', 'connect-attempt', 'info', { url: streamUrl.origin + streamUrl.pathname });
 
     return new Promise<boolean>((resolve) => {
       let settled = false;
@@ -144,11 +168,13 @@ export class NotificationApiClient {
         opened = true;
         this.reconnectAttempts = 0;
         console.log('🔌 SSE connected');
+        this.emitDebug('sse', 'connected');
         settle(true);
       };
 
       this.sse.onerror = (error) => {
         console.error('❌ SSE error:', error);
+        this.emitDebug('sse', 'error', 'error', { opened });
         if (!opened) {
           clearTimeout(timeout);
           this.sse?.close();
@@ -175,24 +201,29 @@ export class NotificationApiClient {
         transports: ['websocket', 'polling'],
         reconnectionAttempts: this.maxReconnectAttempts
       });
+      this.emitDebug('websocket', 'connect-attempt', 'info', { url: this.config.wsUrl });
 
       this.ws.on('connect', () => {
         console.log('🔌 WebSocket connected');
         this.reconnectAttempts = 0;
+        this.emitDebug('websocket', 'connected');
       });
       this.ws.on('initial-data', (data: any) => this.handleMessage(data, onMessage));
       this.ws.on('notification', (data: any) => this.handleMessage(data, onMessage));
       this.ws.on('unread-count', (data: any) => this.handleMessage(data, onMessage));
       this.ws.on('error', (error: any) => {
         console.error('❌ Socket.IO error:', error);
+        this.emitDebug('websocket', 'error', 'error');
       });
       this.ws.on('disconnect', (reason: string) => {
         console.log(`🔌 Socket.IO disconnected. Reason: ${reason}`);
+        this.emitDebug('websocket', 'disconnected', 'warn', { reason });
       });
 
       return true;
     } catch (error) {
       console.error('Failed to initialize socket.io-client. Falling back from WebSocket transport.', error);
+      this.emitDebug('websocket', 'connect-failed', 'error');
       return false;
     }
   }
@@ -230,22 +261,26 @@ export class NotificationApiClient {
     if (this.sse) {
       this.sse.close();
       this.sse = undefined;
+      this.emitDebug('sse', 'closed', 'warn');
     }
 
     if (this.ws) {
       this.ws.close();
       this.ws = undefined;
+      this.emitDebug('websocket', 'closed', 'warn');
     }
   }
 
   startPolling(onPoll: () => Promise<void>): void {
     if (!this.config.pollInterval) return;
+    this.emitDebug('polling', 'started', 'info', { intervalMs: this.config.pollInterval });
 
     this.pollInterval = setInterval(async () => {
       try {
         await onPoll();
       } catch (error) {
         console.error('Polling error:', error);
+        this.emitDebug('polling', 'error', 'error');
       }
     }, this.config.pollInterval);
   }
@@ -254,6 +289,7 @@ export class NotificationApiClient {
     if (this.pollInterval) {
       clearInterval(this.pollInterval);
       this.pollInterval = undefined;
+      this.emitDebug('polling', 'stopped', 'warn');
     }
   }
 
