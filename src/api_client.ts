@@ -28,6 +28,7 @@ export class NotificationApiClient {
     
     const response = await fetch(`${this.config.apiUrl}${endpoint}`, {
       ...options,
+      credentials: 'include', // Ensure cookies are sent for session-based auth
       headers: {
         'Content-Type': 'application/json',
         ...(token && { Authorization: `Bearer ${token}` }),

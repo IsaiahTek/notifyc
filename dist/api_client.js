@@ -83,7 +83,7 @@ var NotificationApiClient = /** @class */ (function () {
                         _b.label = 3;
                     case 3:
                         token = _a;
-                        return [4 /*yield*/, fetch("".concat(this.config.apiUrl).concat(endpoint), __assign(__assign({}, options), { headers: __assign(__assign({ 'Content-Type': 'application/json' }, (token && { Authorization: "Bearer ".concat(token) })), options.headers) }))];
+                        return [4 /*yield*/, fetch("".concat(this.config.apiUrl).concat(endpoint), __assign(__assign({}, options), { credentials: 'include', headers: __assign(__assign({ 'Content-Type': 'application/json' }, (token && { Authorization: "Bearer ".concat(token) })), options.headers) }))];
                     case 4:
                         response = _b.sent();
                         if (!response.ok) {
