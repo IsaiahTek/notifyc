@@ -11,7 +11,7 @@ import { notificationStore } from './store';
 // ============================================================================
 
 export function addNotification(notification: Notification) {
-  const snapshot = notificationStore.snapshot as unknown as NotificationState | NotificationState[];
+  const snapshot = notificationStore.snapshot;
   const state = Array.isArray(snapshot) ? snapshot[0] : snapshot;
   if (!state) return;
   const unreadCount = notification.status !== 'read'
