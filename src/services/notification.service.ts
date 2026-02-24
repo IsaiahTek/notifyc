@@ -2,7 +2,7 @@
 // NOTIFICATION SERVICE
 // ============================================================================
 
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger, InternalServerErrorException } from "@nestjs/common";
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger, InternalServerErrorException, ForbiddenException, NotFoundException } from "@nestjs/common";
 import { NotificationCenter, NotificationInput, NotificationFilters, NotificationPreferences, NotificationTemplate, Unsubscribe, Notification } from "@synq/notifications-core";
 import { EventEmitter } from "events";
 import { NOTIFICATION_CENTER } from "../types/types";
@@ -143,6 +143,23 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
+    async markAsReadForUser(userId: string, notificationId: string): Promise<void> {
+        const center = this.getCenter();
+        const notification = await center.getById(notificationId);
+
+        if (!notification) {
+            throw new NotFoundException('Notification not found.');
+        }
+
+        if (notification.userId !== userId) {
+            throw new ForbiddenException('Cannot mark another user\'s notification as read.');
+        }
+
+        await center.markAsRead(notificationId);
+        const count = await center.getUnreadCount(userId);
+        this.eventEmitter.emit('unread:changed', userId, count);
+    }
+
     async markAllAsRead(userId: string): Promise<void> {
         const center = this.getCenter();
         await center.markAllAsRead(userId);
@@ -152,6 +169,23 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     async delete(notificationId: string): Promise<void> {
         const center = this.getCenter();
         return center.delete(notificationId);
+    }
+
+    async deleteForUser(userId: string, notificationId: string): Promise<void> {
+        const center = this.getCenter();
+        const notification = await center.getById(notificationId);
+
+        if (!notification) {
+            throw new NotFoundException('Notification not found.');
+        }
+
+        if (notification.userId !== userId) {
+            throw new ForbiddenException('Cannot delete another user\'s notification.');
+        }
+
+        await center.delete(notificationId);
+        const count = await center.getUnreadCount(userId);
+        this.eventEmitter.emit('unread:changed', userId, count);
     }
 
     async deleteAll(userId: string): Promise<void> {

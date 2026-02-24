@@ -18,8 +18,10 @@ export declare class NotificationsService implements OnModuleInit, OnModuleDestr
     getUnreadCount(userId: string): Promise<number>;
     getStats(userId: string): Promise<import("@synq/notifications-core").NotificationStats>;
     markAsRead(notificationId: string): Promise<void>;
+    markAsReadForUser(userId: string, notificationId: string): Promise<void>;
     markAllAsRead(userId: string): Promise<void>;
     delete(notificationId: string): Promise<void>;
+    deleteForUser(userId: string, notificationId: string): Promise<void>;
     deleteAll(userId: string): Promise<void>;
     getPreferences(userId: string): Promise<NotificationPreferences>;
     updatePreferences(userId: string, prefs: Partial<NotificationPreferences>): Promise<void>;

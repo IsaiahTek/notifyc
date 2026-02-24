@@ -2,7 +2,13 @@
 // REST API CONTROLLER
 // ============================================================================
 
-import { Controller, Put, Post, Delete, Get, Param, Query, Body } from "@nestjs/common";
+import { Controller, Put, Post, Delete, Get, Param, Query, Body, Sse, MessageEvent, Req } from "@nestjs/common";
+import { Observable } from "rxjs";
+
+type RequestLike = {
+    once(event: 'close', listener: () => void): void;
+    removeListener(event: 'close', listener: () => void): void;
+};
 
 import { NotificationsService } from "../services/notification.service";
 import { NotificationFilters, NotificationInput, NotificationPreferences } from '@synq/notifications-core/';
@@ -10,6 +16,61 @@ import { NotificationFilters, NotificationInput, NotificationPreferences } from 
 @Controller('notifications')
 export class NotificationsController {
     constructor(private readonly notificationsService: NotificationsService) { }
+
+    @Get('health')
+    async health() {
+        return this.notificationsService.healthCheck();
+    }
+
+    @Sse(':userId/stream')
+    streamNotifications(
+        @Param('userId') userId: string,
+        @Req() req: RequestLike
+    ): Observable<MessageEvent> {
+        return new Observable<MessageEvent>((subscriber) => {
+            const push = (type: string, data: any) => subscriber.next({ type, data });
+
+            void Promise.all([
+                this.notificationsService.getForUser(userId, { limit: 20 }),
+                this.notificationsService.getUnreadCount(userId),
+            ]).then(([notifications, unreadCount]) => {
+                push('initial-data', { notifications, unreadCount });
+            }).catch((error) => {
+                subscriber.error(error);
+            });
+
+            const unsubscribeNotification = this.notificationsService.onNotificationSent((notification) => {
+                if (notification.userId === userId) {
+                    push('notification', {
+                        type: 'notification',
+                        notification,
+                    });
+                }
+            });
+
+            const unsubscribeUnread = this.notificationsService.onUnreadCountChanged((changedUserId, count) => {
+                if (changedUserId === userId) {
+                    push('unread-count', {
+                        type: 'unread-count',
+                        count,
+                    });
+                }
+            });
+
+            const close = () => {
+                unsubscribeNotification();
+                unsubscribeUnread();
+                subscriber.complete();
+            };
+
+            req.once('close', close);
+
+            return () => {
+                req.removeListener('close', close);
+                close();
+            };
+        });
+    }
 
     @Get(':userId')
     async getNotifications(
@@ -66,9 +127,12 @@ export class NotificationsController {
         return this.notificationsService.sendBatch(inputs);
     }
 
-    @Post(':id/read')
-    async markAsRead(@Param('id') id: string) {
-        await this.notificationsService.markAsRead(id);
+    @Post(':userId/:id/read')
+    async markAsRead(
+        @Param('userId') userId: string,
+        @Param('id') id: string
+    ) {
+        await this.notificationsService.markAsReadForUser(userId, id);
         return { success: true };
     }
 
@@ -78,9 +142,12 @@ export class NotificationsController {
         return { success: true };
     }
 
-    @Delete(':id')
-    async deleteNotification(@Param('id') id: string) {
-        await this.notificationsService.delete(id);
+    @Delete(':userId/:id')
+    async deleteNotification(
+        @Param('userId') userId: string,
+        @Param('id') id: string
+    ) {
+        await this.notificationsService.deleteForUser(userId, id);
         return { success: true };
     }
 
@@ -90,8 +157,4 @@ export class NotificationsController {
         return { success: true };
     }
 
-    @Get('health')
-    async health() {
-        return this.notificationsService.healthCheck();
-    }
 }

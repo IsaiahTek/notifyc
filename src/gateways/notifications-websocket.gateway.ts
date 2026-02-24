@@ -1,4 +1,4 @@
-import { Logger, OnModuleInit, UnauthorizedException } from '@nestjs/common';
+import { Logger, OnModuleDestroy, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -11,7 +11,6 @@ import {
 } from '@nestjs/websockets';
 import { NotificationsService } from '../services/notification.service';
 import { getNotificationsServiceInstance } from '../module';
-import { Unsubscribe } from '@synq/notifications-core';
 import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
@@ -19,10 +18,11 @@ import { Server, Socket } from 'socket.io';
   namespace: '/notifications'
 })
 export class NotificationsGateway
-  implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, OnModuleInit {
+  implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(NotificationsGateway.name);
   private userToClients = new Map<string, Set<string>>(); 
   private notificationsService!: NotificationsService;
+  private cleanupCallbacks: Array<() => void> = [];
 
   @WebSocketServer()
   server!: Server;
@@ -52,48 +52,57 @@ export class NotificationsGateway
     this.logger.log('✅ NotificationsService retrieved from singleton');
 
     // 1. Subscribe to the Service's internal event emitter for immediate broadcasts.
-    this.notificationsService.onNotificationSent((notification) => {
+    const unsubscribeNotificationSent = this.notificationsService.onNotificationSent((notification) => {
       this.logger.verbose(`Local Emitter triggered for new notification: ${notification.id} (User: ${notification.userId})`);
       this.broadcastToUser(notification.userId, 'notification', {
         type: 'notification',
         notification
       });
     });
+    this.cleanupCallbacks.push(unsubscribeNotificationSent);
 
     // 2. Subscribe to unread count changes for all users
-    this.notificationsService.onUnreadCountChange('*', (count, userId) => {
+    const unsubscribeUnreadCount = this.notificationsService.onUnreadCountChange('*', (count, userId) => {
       this.logger.verbose(`Unread count changed for user ${userId}: ${count}`);
       this.broadcastToUser(userId, 'unread-count', {
         type: 'unread-count',
         count
       });
     });
+    this.cleanupCallbacks.push(unsubscribeUnreadCount);
 
     this.logger.log('WebSocket gateway initialized with event listeners.');
   }
 
-  handleConnection(client: Socket) {
-    const userId = client.handshake.query.userId as string;
+  onModuleDestroy() {
+    this.cleanupCallbacks.forEach((cleanup) => cleanup());
+    this.cleanupCallbacks = [];
+  }
 
-    if (!userId) {
+  handleConnection(client: Socket) {
+    const userIdQuery = client.handshake.query.userId;
+    const userId = Array.isArray(userIdQuery) ? userIdQuery[0] : userIdQuery;
+
+    if (typeof userId !== 'string' || userId.trim().length === 0) {
       this.logger.warn(`Client connected from ${client.handshake.address} without userId. Disconnecting.`);
       client.disconnect();
       return;
     }
 
-    this.logger.log(`Client connected: ${client.id} (userId: ${userId})`);
+    const normalizedUserId = userId.trim();
+    this.logger.log(`Client connected: ${client.id} (userId: ${normalizedUserId})`);
 
     // Track this client for this user
-    if (!this.userToClients.has(userId)) {
-      this.userToClients.set(userId, new Set());
+    if (!this.userToClients.has(normalizedUserId)) {
+      this.userToClients.set(normalizedUserId, new Set());
     }
-    this.userToClients.get(userId)!.add(client.id);
+    this.userToClients.get(normalizedUserId)!.add(client.id);
 
     // Store userId on socket for easy access
-    (client as any).userId = userId;
+    (client as any).userId = normalizedUserId;
 
     // Send initial data immediately upon connection
-    this.sendInitialData(client, userId);
+    this.sendInitialData(client, normalizedUserId);
   }
 
   handleDisconnect(client: Socket) {
@@ -128,7 +137,7 @@ export class NotificationsGateway
 
     // Use the namespace's sockets collection to emit to specific clients
     clientIds.forEach(clientId => {
-      const socket = (this.server.sockets as any).get(clientId);
+      const socket = this.server.sockets.sockets.get(clientId);
 
       if (socket) {
         socket.emit(event, data);
@@ -151,21 +160,29 @@ export class NotificationsGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { notificationId: string }
   ) {
-    await this.notificationsService.markAsRead(data.notificationId); 
+    const clientUserId = (client as any).userId;
+    if (!clientUserId) {
+      throw new UnauthorizedException('Missing authenticated user context.');
+    }
+    await this.notificationsService.markAsReadForUser(clientUserId, data.notificationId);
     return { event: 'status', success: true, message: 'Notification marked as read.' }; 
   }
 
   @SubscribeMessage('mark-all-read')
   async handleMarkAllAsRead(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { userId: string }
+    @MessageBody() data?: { userId?: string }
   ) {
     const clientUserId = (client as any).userId;
-    if (clientUserId !== data.userId) {
+    if (!clientUserId) {
+      throw new UnauthorizedException('Missing authenticated user context.');
+    }
+
+    if (data?.userId && clientUserId !== data.userId) {
         throw new UnauthorizedException('Cannot mark all notifications for another user.');
     }
     
-    await this.notificationsService.markAllAsRead(data.userId);
+    await this.notificationsService.markAllAsRead(clientUserId);
     return { event: 'status', success: true, message: 'All notifications marked as read.' };
   }
 
@@ -174,7 +191,11 @@ export class NotificationsGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { notificationId: string }
   ) {
-    await this.notificationsService.delete(data.notificationId);
+    const clientUserId = (client as any).userId;
+    if (!clientUserId) {
+      throw new UnauthorizedException('Missing authenticated user context.');
+    }
+    await this.notificationsService.deleteForUser(clientUserId, data.notificationId);
     return { event: 'status', success: true, message: 'Notification deleted.' };
   }
 

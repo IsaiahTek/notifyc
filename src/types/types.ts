@@ -26,4 +26,6 @@ export interface NotificationsModuleAsyncOptions {
   imports?: any[];
   useFactory?: (...args: any[]) => Promise<NotificationsModuleOptions> | NotificationsModuleOptions;
   inject?: any[];
+  enableWebSocket?: boolean;
+  enableRestApi?: boolean;
 }

@@ -17,10 +17,53 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationsController = void 0;
 const common_1 = require("@nestjs/common");
+const rxjs_1 = require("rxjs");
 const notification_service_1 = require("../services/notification.service");
 let NotificationsController = class NotificationsController {
     constructor(notificationsService) {
         this.notificationsService = notificationsService;
+    }
+    async health() {
+        return this.notificationsService.healthCheck();
+    }
+    streamNotifications(userId, req) {
+        return new rxjs_1.Observable((subscriber) => {
+            const push = (type, data) => subscriber.next({ type, data });
+            void Promise.all([
+                this.notificationsService.getForUser(userId, { limit: 20 }),
+                this.notificationsService.getUnreadCount(userId),
+            ]).then(([notifications, unreadCount]) => {
+                push('initial-data', { notifications, unreadCount });
+            }).catch((error) => {
+                subscriber.error(error);
+            });
+            const unsubscribeNotification = this.notificationsService.onNotificationSent((notification) => {
+                if (notification.userId === userId) {
+                    push('notification', {
+                        type: 'notification',
+                        notification,
+                    });
+                }
+            });
+            const unsubscribeUnread = this.notificationsService.onUnreadCountChanged((changedUserId, count) => {
+                if (changedUserId === userId) {
+                    push('unread-count', {
+                        type: 'unread-count',
+                        count,
+                    });
+                }
+            });
+            const close = () => {
+                unsubscribeNotification();
+                unsubscribeUnread();
+                subscriber.complete();
+            };
+            req.once('close', close);
+            return () => {
+                req.removeListener('close', close);
+                close();
+            };
+        });
     }
     async getNotifications(userId, status, type, category, limit, offset) {
         const filters = {
@@ -52,27 +95,38 @@ let NotificationsController = class NotificationsController {
     async sendBatch(inputs) {
         return this.notificationsService.sendBatch(inputs);
     }
-    async markAsRead(id) {
-        await this.notificationsService.markAsRead(id);
+    async markAsRead(userId, id) {
+        await this.notificationsService.markAsReadForUser(userId, id);
         return { success: true };
     }
     async markAllAsRead(userId) {
         await this.notificationsService.markAllAsRead(userId);
         return { success: true };
     }
-    async deleteNotification(id) {
-        await this.notificationsService.delete(id);
+    async deleteNotification(userId, id) {
+        await this.notificationsService.deleteForUser(userId, id);
         return { success: true };
     }
     async deleteAll(userId) {
         await this.notificationsService.deleteAll(userId);
         return { success: true };
     }
-    async health() {
-        return this.notificationsService.healthCheck();
-    }
 };
 exports.NotificationsController = NotificationsController;
+__decorate([
+    (0, common_1.Get)('health'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], NotificationsController.prototype, "health", null);
+__decorate([
+    (0, common_1.Sse)(':userId/stream'),
+    __param(0, (0, common_1.Param)('userId')),
+    __param(1, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", rxjs_1.Observable)
+], NotificationsController.prototype, "streamNotifications", null);
 __decorate([
     (0, common_1.Get)(':userId'),
     __param(0, (0, common_1.Param)('userId')),
@@ -129,10 +183,11 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], NotificationsController.prototype, "sendBatch", null);
 __decorate([
-    (0, common_1.Post)(':id/read'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_1.Post)(':userId/:id/read'),
+    __param(0, (0, common_1.Param)('userId')),
+    __param(1, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], NotificationsController.prototype, "markAsRead", null);
 __decorate([
@@ -143,10 +198,11 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], NotificationsController.prototype, "markAllAsRead", null);
 __decorate([
-    (0, common_1.Delete)(':id'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_1.Delete)(':userId/:id'),
+    __param(0, (0, common_1.Param)('userId')),
+    __param(1, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], NotificationsController.prototype, "deleteNotification", null);
 __decorate([
@@ -156,12 +212,6 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], NotificationsController.prototype, "deleteAll", null);
-__decorate([
-    (0, common_1.Get)('health'),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], NotificationsController.prototype, "health", null);
 exports.NotificationsController = NotificationsController = __decorate([
     (0, common_1.Controller)('notifications'),
     __metadata("design:paramtypes", [notification_service_1.NotificationsService])

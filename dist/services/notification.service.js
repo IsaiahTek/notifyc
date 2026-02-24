@@ -122,6 +122,19 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             this.eventEmitter.emit('unread:changed', notification.userId, count);
         }
     }
+    async markAsReadForUser(userId, notificationId) {
+        const center = this.getCenter();
+        const notification = await center.getById(notificationId);
+        if (!notification) {
+            throw new common_1.NotFoundException('Notification not found.');
+        }
+        if (notification.userId !== userId) {
+            throw new common_1.ForbiddenException('Cannot mark another user\'s notification as read.');
+        }
+        await center.markAsRead(notificationId);
+        const count = await center.getUnreadCount(userId);
+        this.eventEmitter.emit('unread:changed', userId, count);
+    }
     async markAllAsRead(userId) {
         const center = this.getCenter();
         await center.markAllAsRead(userId);
@@ -130,6 +143,19 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
     async delete(notificationId) {
         const center = this.getCenter();
         return center.delete(notificationId);
+    }
+    async deleteForUser(userId, notificationId) {
+        const center = this.getCenter();
+        const notification = await center.getById(notificationId);
+        if (!notification) {
+            throw new common_1.NotFoundException('Notification not found.');
+        }
+        if (notification.userId !== userId) {
+            throw new common_1.ForbiddenException('Cannot delete another user\'s notification.');
+        }
+        await center.delete(notificationId);
+        const count = await center.getUnreadCount(userId);
+        this.eventEmitter.emit('unread:changed', userId, count);
     }
     async deleteAll(userId) {
         const center = this.getCenter();

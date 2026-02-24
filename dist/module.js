@@ -146,9 +146,13 @@ let NotificationsModule = NotificationsModule_1 = class NotificationsModule {
         const providers = [
             InitializationProvider,
             ServiceProvider,
-            notifications_websocket_gateway_1.NotificationsGateway,
         ];
-        const controllers = [notification_controller_1.NotificationsController];
+        if (options.enableWebSocket !== false) {
+            providers.push(notifications_websocket_gateway_1.NotificationsGateway);
+        }
+        const controllers = options.enableRestApi !== false
+            ? [notification_controller_1.NotificationsController]
+            : [];
         const exports = [notification_service_1.NotificationsService];
         return {
             module: NotificationsModule_1,
