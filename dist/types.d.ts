@@ -84,6 +84,9 @@ export interface NotificationState {
 export interface NotificationConfig {
     apiUrl: string;
     userId: string;
+    realtimeTransport?: 'sse' | 'websocket' | 'polling' | 'none';
+    sseUrl?: string;
+    ssePath?: string;
     wsUrl?: string;
     pollInterval?: number;
     getAuthToken?: () => Promise<string | null>;

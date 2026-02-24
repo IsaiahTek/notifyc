@@ -3,6 +3,7 @@ import { Notification, NotificationFilters, NotificationPreferences, Notificatio
 export declare class NotificationApiClient {
     private config;
     private ws?;
+    private sse?;
     private pollInterval?;
     private reconnectAttempts;
     private maxReconnectAttempts;
@@ -17,7 +18,9 @@ export declare class NotificationApiClient {
     deleteNotification(notificationId: string): Promise<void>;
     deleteAll(): Promise<void>;
     updatePreferences(prefs: Partial<NotificationPreferences>): Promise<void>;
-    connectWebSocket(onMessage: (data: any) => void): void;
+    connectSSE(onMessage: (data: any) => void): boolean;
+    connectWebSocket(onMessage: (data: any) => void): Promise<boolean>;
+    private handleSSEMessage;
     private handleMessage;
     disconnectWebSocket(): void;
     startPolling(onPoll: () => Promise<void>): void;

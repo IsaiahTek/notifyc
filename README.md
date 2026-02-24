@@ -33,10 +33,12 @@ import { initializeNotifications } from 'notifyc-react';
 // Initialize on client side
 if (typeof window !== 'undefined') {
   initializeNotifications({
-    apiUrl: 'http://localhost:3000/api',
-    wsUrl: 'ws://localhost:3000/ws', // Optional
+    apiUrl: 'http://localhost:3000',
     userId: 'user:123',
-    pollInterval: 5000, // Fallback polling
+    realtimeTransport: 'sse', // Default
+    ssePath: '/notifications/:userId/stream', // Optional
+    wsUrl: 'http://localhost:3000/notifications', // Optional fallback/override
+    pollInterval: 5000, // Final fallback
     getAuthToken: async () => localStorage.getItem('token')
   });
 }
@@ -148,8 +150,11 @@ interface NotificationConfig {
   userId: string;              // Current user ID
   
   // Optional - Real-time
-  wsUrl?: string;              // WebSocket URL
-  pollInterval?: number;       // Polling interval (ms) if no WebSocket
+  realtimeTransport?: 'sse' | 'websocket' | 'polling' | 'none'; // Default: 'sse'
+  sseUrl?: string;             // Optional SSE base URL (defaults to apiUrl)
+  ssePath?: string;            // SSE path template, default '/notifications/:userId/stream'
+  wsUrl?: string;              // WebSocket URL (used when transport is websocket/fallback)
+  pollInterval?: number;       // Polling interval (ms) fallback
   
   // Optional - Auth
   getAuthToken?: () => Promise<string | null>;
@@ -461,12 +466,24 @@ function NotificationSoundPlayer() {
 
 ## 🔌 Real-time Updates
 
-### WebSocket (Recommended)
+### SSE (Default)
 
 ```tsx
 initializeNotifications({
-  apiUrl: 'http://localhost:3000/api',
-  wsUrl: 'ws://localhost:3000/ws', // Auto-connects!
+  apiUrl: 'http://localhost:3000',
+  userId: 'user:123'
+});
+
+// Uses GET /notifications/:userId/stream by default
+```
+
+### WebSocket (Optional)
+
+```tsx
+initializeNotifications({
+  apiUrl: 'http://localhost:3000',
+  realtimeTransport: 'websocket',
+  wsUrl: 'http://localhost:3000/notifications',
   userId: 'user:123'
 });
 
@@ -497,7 +514,8 @@ wss.on('connection', (ws, req) => {
 
 ```tsx
 initializeNotifications({
-  apiUrl: 'http://localhost:3000/api',
+  apiUrl: 'http://localhost:3000',
+  realtimeTransport: 'polling',
   userId: 'user:123',
   pollInterval: 5000 // Poll every 5 seconds
 });

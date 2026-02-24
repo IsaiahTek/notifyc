@@ -51,16 +51,33 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationApiClient = void 0;
-var socket_io_client_1 = require("socket.io-client");
 var NotificationApiClient = /** @class */ (function () {
     function NotificationApiClient(config) {
         var _this = this;
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
+        this.handleSSEMessage = function (eventType, onMessage) { return function (event) {
+            var _a;
+            var parsedData = event.data;
+            if (typeof event.data === 'string') {
+                try {
+                    parsedData = JSON.parse(event.data);
+                }
+                catch (_b) {
+                    parsedData = { data: event.data };
+                }
+            }
+            var normalized = parsedData && typeof parsedData === 'object'
+                ? __assign(__assign({}, parsedData), { type: (_a = parsedData.type) !== null && _a !== void 0 ? _a : eventType }) : { type: eventType, data: parsedData };
+            _this.handleMessage(normalized, onMessage);
+        }; };
         // Helper function to process messages (optional, based on your original logic)
         this.handleMessage = function (data, onMessage) {
             if (data.notification) {
                 data.notification = _this.parseNotificationDates(data.notification);
+            }
+            if (Array.isArray(data.notifications)) {
+                data.notifications = data.notifications.map(function (notification) { return _this.parseNotificationDates(notification); });
             }
             onMessage(data);
         };
@@ -161,7 +178,7 @@ var NotificationApiClient = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.request("/notifications/".concat(notificationId, "/read"), { method: 'POST' })];
+                    case 0: return [4 /*yield*/, this.request("/notifications/".concat(this.config.userId, "/").concat(notificationId, "/read"), { method: 'POST' })];
                     case 1:
                         _a.sent();
                         return [2 /*return*/];
@@ -185,7 +202,7 @@ var NotificationApiClient = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.request("/notifications/".concat(notificationId), { method: 'DELETE' })];
+                    case 0: return [4 /*yield*/, this.request("/notifications/".concat(this.config.userId, "/").concat(notificationId), { method: 'DELETE' })];
                     case 1:
                         _a.sent();
                         return [2 /*return*/];
@@ -197,7 +214,7 @@ var NotificationApiClient = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.request("/notifications/".concat(this.config.userId), { method: 'DELETE' })];
+                    case 0: return [4 /*yield*/, this.request("/notifications/".concat(this.config.userId, "/all"), { method: 'DELETE' })];
                     case 1:
                         _a.sent();
                         return [2 /*return*/];
@@ -220,67 +237,86 @@ var NotificationApiClient = /** @class */ (function () {
             });
         });
     };
-    NotificationApiClient.prototype.connectWebSocket = function (onMessage) {
+    NotificationApiClient.prototype.connectSSE = function (onMessage) {
         var _this = this;
-        if (!this.config.wsUrl)
-            return;
-        var connect = function () {
-            _this.ws = (0, socket_io_client_1.io)(_this.config.wsUrl, {
-                query: {
-                    userId: _this.config.userId,
-                },
-                // Force WebSocket transport for performance, though 'polling' fallback is common
-                transports: ['websocket', 'polling'],
-                reconnectionAttempts: _this.maxReconnectAttempts
-            });
-            // this.ws.onmessage = (event) => {
-            //   const data = JSON.parse(event.data);
-            //   // Parse dates in received data
-            //   if (data.notification) {
-            //     data.notification = this.parseNotificationDates(data.notification);
-            //   }
-            //   onMessage(data);
-            // };
-            // this.ws.onerror = (error) => {
-            //   console.error('❌ WebSocket error:', error);
-            // };
-            // this.ws.onclose = () => {
-            //   console.log('🔌 WebSocket disconnected');
-            //   if (this.reconnectAttempts < this.maxReconnectAttempts) {
-            //     this.reconnectAttempts++;
-            //     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-            //     console.log(`🔄 Reconnecting in ${delay}ms...`);
-            //     setTimeout(connect, delay);
-            //   }
-            // };
-            _this.ws.on('connect', function () {
-                console.log('🔌 WebSocket connected');
-                _this.reconnectAttempts = 0;
-            });
-            // Listen for the custom event emitted by your NestJS gateway
-            _this.ws.on('initial-data', function (data) {
-                // Handle your custom initial-data event
-                _this.handleMessage(data, onMessage);
-            });
-            _this.ws.on('notification', function (data) {
-                // Handle your custom 'notification' event
-                _this.handleMessage(data, onMessage);
-            });
-            _this.ws.on('unread-count', function (data) {
-                // Handle your custom 'unread-count' event
-                _this.handleMessage(data, onMessage);
-            });
-            _this.ws.on('error', function (error) {
-                console.error('❌ Socket.IO error:', error);
-            });
-            _this.ws.on('disconnect', function (reason) {
-                console.log("\uD83D\uDD0C Socket.IO disconnected. Reason: ".concat(reason));
-                // Socket.IO's built-in reconnection handles the rest.
-            });
+        var _a, _b;
+        if (typeof EventSource === 'undefined')
+            return false;
+        var base = ((_a = this.config.sseUrl) !== null && _a !== void 0 ? _a : this.config.apiUrl).replace(/\/+$/, '');
+        var configuredPath = (_b = this.config.ssePath) !== null && _b !== void 0 ? _b : '/notifications/:userId/stream';
+        var normalizedPath = configuredPath.startsWith('/') ? configuredPath : "/".concat(configuredPath);
+        var resolvedPath = normalizedPath.replace(':userId', encodeURIComponent(this.config.userId));
+        var streamUrl = "".concat(base).concat(resolvedPath);
+        this.sse = new EventSource(streamUrl, { withCredentials: true });
+        this.sse.onopen = function () {
+            console.log('🔌 SSE connected');
+            _this.reconnectAttempts = 0;
         };
-        connect();
+        this.sse.addEventListener('initial-data', this.handleSSEMessage('initial-data', onMessage));
+        this.sse.addEventListener('notification', this.handleSSEMessage('notification', onMessage));
+        this.sse.addEventListener('unread-count', this.handleSSEMessage('unread-count', onMessage));
+        this.sse.onerror = function (error) {
+            console.error('❌ SSE error:', error);
+        };
+        return true;
+    };
+    NotificationApiClient.prototype.connectWebSocket = function (onMessage) {
+        return __awaiter(this, void 0, void 0, function () {
+            var socketIO, io, token, _a, error_1;
+            var _this = this;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        if (!this.config.wsUrl)
+                            return [2 /*return*/, false];
+                        _b.label = 1;
+                    case 1:
+                        _b.trys.push([1, 6, , 7]);
+                        return [4 /*yield*/, Promise.resolve().then(function () { return require('socket.io-client'); })];
+                    case 2:
+                        socketIO = _b.sent();
+                        io = socketIO.io;
+                        if (!this.config.getAuthToken) return [3 /*break*/, 4];
+                        return [4 /*yield*/, this.config.getAuthToken()];
+                    case 3:
+                        _a = _b.sent();
+                        return [3 /*break*/, 5];
+                    case 4:
+                        _a = null;
+                        _b.label = 5;
+                    case 5:
+                        token = _a;
+                        this.ws = io(this.config.wsUrl, __assign(__assign({ query: {
+                                userId: this.config.userId,
+                            } }, (token && { auth: { token: token } })), { withCredentials: true, transports: ['websocket', 'polling'], reconnectionAttempts: this.maxReconnectAttempts }));
+                        this.ws.on('connect', function () {
+                            console.log('🔌 WebSocket connected');
+                            _this.reconnectAttempts = 0;
+                        });
+                        this.ws.on('initial-data', function (data) { return _this.handleMessage(data, onMessage); });
+                        this.ws.on('notification', function (data) { return _this.handleMessage(data, onMessage); });
+                        this.ws.on('unread-count', function (data) { return _this.handleMessage(data, onMessage); });
+                        this.ws.on('error', function (error) {
+                            console.error('❌ Socket.IO error:', error);
+                        });
+                        this.ws.on('disconnect', function (reason) {
+                            console.log("\uD83D\uDD0C Socket.IO disconnected. Reason: ".concat(reason));
+                        });
+                        return [2 /*return*/, true];
+                    case 6:
+                        error_1 = _b.sent();
+                        console.error('Failed to initialize socket.io-client. Falling back from WebSocket transport.', error_1);
+                        return [2 /*return*/, false];
+                    case 7: return [2 /*return*/];
+                }
+            });
+        });
     };
     NotificationApiClient.prototype.disconnectWebSocket = function () {
+        if (this.sse) {
+            this.sse.close();
+            this.sse = undefined;
+        }
         if (this.ws) {
             this.ws.close();
             this.ws = undefined;
@@ -291,7 +327,7 @@ var NotificationApiClient = /** @class */ (function () {
         if (!this.config.pollInterval)
             return;
         this.pollInterval = setInterval(function () { return __awaiter(_this, void 0, void 0, function () {
-            var error_1;
+            var error_2;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -301,8 +337,8 @@ var NotificationApiClient = /** @class */ (function () {
                         _a.sent();
                         return [3 /*break*/, 3];
                     case 2:
-                        error_1 = _a.sent();
-                        console.error('Polling error:', error_1);
+                        error_2 = _a.sent();
+                        console.error('Polling error:', error_2);
                         return [3 /*break*/, 3];
                     case 3: return [2 /*return*/];
                 }

@@ -2,7 +2,6 @@
 // API CLIENT
 // ============================================================================
 
-import { io, Socket } from "socket.io-client";
 import { NotificationConfig } from "./types";
 import {
   Notification,
@@ -14,7 +13,8 @@ import {
 
 export class NotificationApiClient {
   private config: NotificationConfig;
-  private ws?: Socket;
+  private ws?: any;
+  private sse?: EventSource;
   private pollInterval?: any;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
@@ -80,7 +80,7 @@ export class NotificationApiClient {
   }
 
   async markAsRead(notificationId: string): Promise<void> {
-    await this.request(`/notifications/${notificationId}/read`, { method: 'POST' });
+    await this.request(`/notifications/${this.config.userId}/${notificationId}/read`, { method: 'POST' });
   }
 
   async markAllAsRead(): Promise<void> {
@@ -88,11 +88,11 @@ export class NotificationApiClient {
   }
 
   async deleteNotification(notificationId: string): Promise<void> {
-    await this.request(`/notifications/${notificationId}`, { method: 'DELETE' });
+    await this.request(`/notifications/${this.config.userId}/${notificationId}`, { method: 'DELETE' });
   }
 
   async deleteAll(): Promise<void> {
-    await this.request(`/notifications/${this.config.userId}`, { method: 'DELETE' });
+    await this.request(`/notifications/${this.config.userId}/all`, { method: 'DELETE' });
   }
 
   async updatePreferences(prefs: Partial<NotificationPreferences>): Promise<void> {
@@ -102,79 +102,84 @@ export class NotificationApiClient {
     });
   }
 
-  connectWebSocket(onMessage: (data: any) => void): void {
-    if (!this.config.wsUrl) return;
+  connectSSE(onMessage: (data: any) => void): boolean {
+    if (typeof EventSource === 'undefined') return false;
 
-    const connect = () => {
-      
-      this.ws = io(this.config.wsUrl!, {
-        query: { // Pass userId as a 'query' option for the handshake
+    const base = (this.config.sseUrl ?? this.config.apiUrl).replace(/\/+$/, '');
+    const configuredPath = this.config.ssePath ?? '/notifications/:userId/stream';
+    const normalizedPath = configuredPath.startsWith('/') ? configuredPath : `/${configuredPath}`;
+    const resolvedPath = normalizedPath.replace(':userId', encodeURIComponent(this.config.userId));
+    const streamUrl = `${base}${resolvedPath}`;
+
+    this.sse = new EventSource(streamUrl, { withCredentials: true });
+    this.sse.onopen = () => {
+      console.log('🔌 SSE connected');
+      this.reconnectAttempts = 0;
+    };
+    this.sse.addEventListener('initial-data', this.handleSSEMessage('initial-data', onMessage));
+    this.sse.addEventListener('notification', this.handleSSEMessage('notification', onMessage));
+    this.sse.addEventListener('unread-count', this.handleSSEMessage('unread-count', onMessage));
+    this.sse.onerror = (error) => {
+      console.error('❌ SSE error:', error);
+    };
+
+    return true;
+  }
+
+  async connectWebSocket(onMessage: (data: any) => void): Promise<boolean> {
+    if (!this.config.wsUrl) return false;
+
+    try {
+      const socketIO = await import('socket.io-client');
+      const io = socketIO.io;
+      const token = this.config.getAuthToken ? await this.config.getAuthToken() : null;
+      this.ws = io(this.config.wsUrl, {
+        query: {
           userId: this.config.userId,
         },
-        // Force WebSocket transport for performance, though 'polling' fallback is common
-        transports: ['websocket', 'polling'], 
+        ...(token && { auth: { token } }),
+        withCredentials: true,
+        transports: ['websocket', 'polling'],
         reconnectionAttempts: this.maxReconnectAttempts
       });
-
-      
-      // this.ws.onmessage = (event) => {
-        //   const data = JSON.parse(event.data);
-        
-      //   // Parse dates in received data
-      //   if (data.notification) {
-      //     data.notification = this.parseNotificationDates(data.notification);
-      //   }
-        
-      //   onMessage(data);
-      // };
-
-      // this.ws.onerror = (error) => {
-      //   console.error('❌ WebSocket error:', error);
-      // };
-
-      // this.ws.onclose = () => {
-      //   console.log('🔌 WebSocket disconnected');
-        
-      //   if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      //     this.reconnectAttempts++;
-      //     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-      //     console.log(`🔄 Reconnecting in ${delay}ms...`);
-      //     setTimeout(connect, delay);
-      //   }
-      // };
 
       this.ws.on('connect', () => {
         console.log('🔌 WebSocket connected');
         this.reconnectAttempts = 0;
       });
-      // Listen for the custom event emitted by your NestJS gateway
-      this.ws.on('initial-data', (data: any) => {
-        // Handle your custom initial-data event
-        this.handleMessage(data, onMessage); 
-      });
-
-      this.ws.on('notification', (data: any) => {
-        // Handle your custom 'notification' event
-        this.handleMessage(data, onMessage); 
-      });
-
-      this.ws.on('unread-count', (data: any) => {
-        // Handle your custom 'unread-count' event
-        this.handleMessage(data, onMessage); 
-      });
-
-      this.ws.on('error', (error: any) => { // Socket.IO uses 'error'
+      this.ws.on('initial-data', (data: any) => this.handleMessage(data, onMessage));
+      this.ws.on('notification', (data: any) => this.handleMessage(data, onMessage));
+      this.ws.on('unread-count', (data: any) => this.handleMessage(data, onMessage));
+      this.ws.on('error', (error: any) => {
         console.error('❌ Socket.IO error:', error);
       });
-      
-      this.ws.on('disconnect', (reason: string) => { // Socket.IO uses 'disconnect'
+      this.ws.on('disconnect', (reason: string) => {
         console.log(`🔌 Socket.IO disconnected. Reason: ${reason}`);
-        // Socket.IO's built-in reconnection handles the rest.
       });
 
-    };
-    
-    connect();
+      return true;
+    } catch (error) {
+      console.error('Failed to initialize socket.io-client. Falling back from WebSocket transport.', error);
+      return false;
+    }
+  }
+
+  private handleSSEMessage = (eventType: string, onMessage: (data: any) => void) => (event: MessageEvent) => {
+    let parsedData: any = event.data;
+    if (typeof event.data === 'string') {
+      try {
+        parsedData = JSON.parse(event.data);
+      } catch {
+        parsedData = { data: event.data };
+      }
+    }
+
+    const normalized =
+      parsedData && typeof parsedData === 'object'
+        ? { ...parsedData, type: parsedData.type ?? eventType }
+        : { type: eventType, data: parsedData };
+
+    this.handleMessage(normalized, onMessage);
   }
 
   // Helper function to process messages (optional, based on your original logic)
@@ -182,10 +187,18 @@ export class NotificationApiClient {
       if (data.notification) {
           data.notification = this.parseNotificationDates(data.notification);
       }
+      if (Array.isArray(data.notifications)) {
+        data.notifications = data.notifications.map((notification: Notification) => this.parseNotificationDates(notification));
+      }
       onMessage(data);
   }
   
   disconnectWebSocket(): void {
+    if (this.sse) {
+      this.sse.close();
+      this.sse = undefined;
+    }
+
     if (this.ws) {
       this.ws.close();
       this.ws = undefined;

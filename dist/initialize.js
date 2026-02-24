@@ -61,43 +61,80 @@ exports.apiClient = null;
 function initializeNotifications(config, onInitialized) {
     var _this = this;
     exports.apiClient = new api_client_1.NotificationApiClient(config);
-    // Setup WebSocket or Polling
-    if (config.wsUrl) {
-        console.log("About to connect to WebSocket at: ", config.wsUrl);
-        exports.apiClient.connectWebSocket(function (data) {
-            console.log("GOT NEW NOTIFICATION: ", data);
-            if (data.type === 'notification') {
-                (0, handlers_1.addNotification)(data.notification);
-            }
-            else if (data.type === 'unread-count') {
-                var state_1 = store_1.notificationStore.snapshot[0];
-                store_1.notificationStore.update(__assign(__assign({}, state_1), { unreadCount: data.count }), "key");
-            }
-            else if (data.type === 'initial-data') {
-                var state_2 = store_1.notificationStore.snapshot[0];
-                store_1.notificationStore.update(__assign(__assign({}, state_2), { notifications: data.notifications, unreadCount: data.unreadCount, isConnected: true }), "key");
+    var onMessage = function (data) {
+        console.log("GOT NEW NOTIFICATION: ", data);
+        if (data.type === 'notification') {
+            (0, handlers_1.addNotification)(data.notification);
+        }
+        else if (data.type === 'unread-count') {
+            var state = store_1.notificationStore.snapshot[0];
+            store_1.notificationStore.update(__assign(__assign({}, state), { unreadCount: data.count }), "key");
+        }
+        else if (data.type === 'initial-data') {
+            var state = store_1.notificationStore.snapshot[0];
+            store_1.notificationStore.update(__assign(__assign({}, state), { notifications: data.notifications, unreadCount: data.unreadCount, isConnected: true }), "key");
+        }
+    };
+    var connectRealtime = function () { return __awaiter(_this, void 0, void 0, function () {
+        var preferredTransport, connected, state;
+        var _this = this;
+        var _a;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    preferredTransport = (_a = config.realtimeTransport) !== null && _a !== void 0 ? _a : 'sse';
+                    connected = false;
+                    if (!(preferredTransport === 'sse')) return [3 /*break*/, 3];
+                    connected = exports.apiClient.connectSSE(onMessage);
+                    if (!(!connected && config.wsUrl)) return [3 /*break*/, 2];
+                    return [4 /*yield*/, exports.apiClient.connectWebSocket(onMessage)];
+                case 1:
+                    connected = _b.sent();
+                    _b.label = 2;
+                case 2: return [3 /*break*/, 6];
+                case 3:
+                    if (!(preferredTransport === 'websocket')) return [3 /*break*/, 5];
+                    return [4 /*yield*/, exports.apiClient.connectWebSocket(onMessage)];
+                case 4:
+                    connected = _b.sent();
+                    if (!connected) {
+                        connected = exports.apiClient.connectSSE(onMessage);
+                    }
+                    return [3 /*break*/, 6];
+                case 5:
+                    if (preferredTransport === 'polling') {
+                        connected = false;
+                    }
+                    else if (preferredTransport === 'none') {
+                        connected = false;
+                    }
+                    _b.label = 6;
+                case 6:
+                    if (!connected && preferredTransport !== 'none' && config.pollInterval) {
+                        exports.apiClient.startPolling(function () { return __awaiter(_this, void 0, void 0, function () {
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0: return [4 /*yield*/, (0, actions_1.fetchNotifications)()];
+                                    case 1:
+                                        _a.sent();
+                                        return [4 /*yield*/, (0, actions_1.fetchUnreadCount)()];
+                                    case 2:
+                                        _a.sent();
+                                        return [2 /*return*/];
+                                }
+                            });
+                        }); });
+                        connected = true;
+                    }
+                    if (connected) {
+                        state = store_1.notificationStore.snapshot[0];
+                        store_1.notificationStore.update(__assign(__assign({}, state), { isConnected: true }), "key");
+                    }
+                    return [2 /*return*/];
             }
         });
-        var state = store_1.notificationStore.snapshot[0];
-        store_1.notificationStore.update(__assign(__assign({}, state), { isConnected: true }), "key");
-    }
-    else if (config.pollInterval) {
-        exports.apiClient.startPolling(function () { return __awaiter(_this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, (0, actions_1.fetchNotifications)()];
-                    case 1:
-                        _a.sent();
-                        return [4 /*yield*/, (0, actions_1.fetchUnreadCount)()];
-                    case 2:
-                        _a.sent();
-                        return [2 /*return*/];
-                }
-            });
-        }); });
-        var state = store_1.notificationStore.snapshot[0];
-        store_1.notificationStore.update(__assign(__assign({}, state), { isConnected: true }), "key");
-    }
+    }); };
+    void connectRealtime();
     console.log("ABOUT TO CALL NOTIFICATION ACTIONS");
     // Initial fetch
     (0, actions_1.fetchNotifications)();
