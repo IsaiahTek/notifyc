@@ -40,7 +40,9 @@ export class NotificationsController {
             });
 
             const unsubscribeNotification = this.notificationsService.onNotificationSent((notification) => {
+                console.log(`ATTEMPTING TO EMIT Notification sent for user ${notification.userId}:`, notification);
                 if (notification.userId === userId) {
+                    console.log(`Emitting notification to client ${userId}:`, notification);
                     push('notification', {
                         type: 'notification',
                         notification,
