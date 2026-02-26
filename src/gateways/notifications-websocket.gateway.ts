@@ -20,7 +20,7 @@ import { Server, Socket } from 'socket.io';
 export class NotificationsGateway
   implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(NotificationsGateway.name);
-  private userToClients = new Map<string, Set<string>>(); 
+  private userToClients = new Map<string, Set<string>>();
   private notificationsService!: NotificationsService;
   private cleanupCallbacks: Array<() => void> = [];
 
@@ -36,7 +36,7 @@ export class NotificationsGateway
     this.logger.log(`🚀 Server instance available: ${!!server}`);
     this.logger.log(`🚀 Server.sockets available: ${!!server?.sockets}`);
     this.logger.log(`🚀 this.server available: ${!!this.server}`);
-    
+
     // Force set the server if needed
     if (server && !this.server) {
       this.server = server;
@@ -127,9 +127,10 @@ export class NotificationsGateway
       return;
     }
 
-    const clientIds = this.userToClients.get(userId);
+    const sid = String(userId);
+    const clientIds = this.userToClients.get(sid);
     if (!clientIds || clientIds.size === 0) {
-      this.logger.verbose(`No active clients found for user ${userId}. Skipping broadcast.`);
+      this.logger.verbose(`No active clients found for user ${sid}. Skipping broadcast.`);
       return;
     }
 
@@ -148,7 +149,7 @@ export class NotificationsGateway
         this.logger.warn(`Socket ID ${clientId} not found for user ${userId}. Cleaning up map.`);
       }
     });
-    
+
     // Post-cleanup check
     if (clientIds.size === 0) {
       this.userToClients.delete(userId);
@@ -165,7 +166,7 @@ export class NotificationsGateway
       throw new UnauthorizedException('Missing authenticated user context.');
     }
     await this.notificationsService.markAsReadForUser(clientUserId, data.notificationId);
-    return { event: 'status', success: true, message: 'Notification marked as read.' }; 
+    return { event: 'status', success: true, message: 'Notification marked as read.' };
   }
 
   @SubscribeMessage('mark-all-read')
@@ -179,9 +180,9 @@ export class NotificationsGateway
     }
 
     if (data?.userId && clientUserId !== data.userId) {
-        throw new UnauthorizedException('Cannot mark all notifications for another user.');
+      throw new UnauthorizedException('Cannot mark all notifications for another user.');
     }
-    
+
     await this.notificationsService.markAllAsRead(clientUserId);
     return { event: 'status', success: true, message: 'All notifications marked as read.' };
   }
