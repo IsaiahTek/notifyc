@@ -53,19 +53,19 @@ export function initializeNotifications(config: NotificationConfig, onInitialize
     notificationStore.update({ ...state, realtime }, "key");
   };
 
-  const onMessage = (data: any, isSSE: boolean = false) => {
+  const onMessage = (data: any) => {
     console.log(`GOT NEW "${data.type}" NOTIFICATION: `, data)
     if (data.type === 'notification') {
-      addNotification(isSSE ? data.data : data.notification);
+      addNotification(data.notification);
     } else if (data.type === 'unread-count') {
       const state = getState();
-      notificationStore.update({ ...state, unreadCount: isSSE ? data.data : data.count }, "key");
+      notificationStore.update({ ...state, unreadCount: data.count }, "key");
     } else if (data.type === 'initial-data') {
       const state = getState();
       notificationStore.update({
         ...state,
-        notifications: isSSE ? data.data : data.notifications,
-        unreadCount: isSSE ? data.data.unreadCount : data.unreadCount,
+        notifications: data.notifications,
+        unreadCount: data.unreadCount,
         isConnected: true
       }, "key");
     }

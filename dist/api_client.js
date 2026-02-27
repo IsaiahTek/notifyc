@@ -383,10 +383,11 @@ var NotificationApiClient = /** @class */ (function () {
                                 };
                                 this.sse.onmessage = function (event) {
                                     try {
-                                        onMessage(JSON.parse(event.data), true);
+                                        var parsed = JSON.parse(event.data);
+                                        onMessage(__assign({ type: parsed.type }, parsed.data));
                                     }
                                     catch (_a) {
-                                        onMessage(event.data, true);
+                                        onMessage(__assign({ type: event.data.type }, event.data.data));
                                     }
                                 };
                                 this.sse.onerror = function () {
