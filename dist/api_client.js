@@ -381,9 +381,11 @@ var NotificationApiClient = /** @class */ (function () {
                                 this.ws.on('connect', function () { return settle(true); });
                                 this.ws.on('message', function (event) {
                                     try {
+                                        console.log('WS Message RAW: ', event);
                                         onMessage(JSON.parse(event.data));
                                     }
                                     catch (_a) {
+                                        console.log('WS Message: ', event);
                                         onMessage(event.data);
                                     }
                                 });

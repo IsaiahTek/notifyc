@@ -261,8 +261,10 @@ export class NotificationApiClient {
 
         this.ws.on('message', (event) => {
           try {
+            console.log('WS Message RAW: ', event);
             onMessage(JSON.parse(event.data));
           } catch {
+            console.log('WS Message: ', event);
             onMessage(event.data);
           }
         });
