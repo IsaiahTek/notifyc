@@ -240,7 +240,7 @@ export class NotificationApiClient {
       };
 
       try {
-        const base = (this.config.wsUrl ?? this.config.apiUrl).replace(/\/+$/, '');
+        const base = (this.config.wsUrl ?? this.config.apiUrl).replace(/\/+$/, '/notifications');
         const token = this.config.getAuthToken
           ? await this.config.getAuthToken()
           : null;
