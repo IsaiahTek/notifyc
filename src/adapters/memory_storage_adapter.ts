@@ -45,7 +45,7 @@ export class MemoryStorageAdapter implements StorageAdapter {
       if (filters.endDate) {
         results = results.filter(n => n.createdAt <= filters.endDate!);
       }
-      
+
       // Sort
       const sortBy = filters.sortBy || 'createdAt';
       const sortOrder = filters.sortOrder || 'desc';
@@ -94,6 +94,25 @@ export class MemoryStorageAdapter implements StorageAdapter {
       });
   }
 
+  async markAsUnread(id: string): Promise<void> {
+    const notification = this.notifications.get(id);
+    if (notification) {
+      notification.status = 'delivered';
+      notification.readAt = undefined;
+      this.notifications.set(id, notification);
+    }
+  }
+
+  async markAllAsUnread(userId: string): Promise<void> {
+    Array.from(this.notifications.values())
+      .filter(n => n.userId === userId && n.status !== 'delivered')
+      .forEach(n => {
+        n.status = 'delivered';
+        n.readAt = undefined;
+        this.notifications.set(n.id, n);
+      });
+  }
+
   async delete(id: string): Promise<void> {
     this.notifications.delete(id);
     this.receipts.delete(id);
@@ -114,14 +133,14 @@ export class MemoryStorageAdapter implements StorageAdapter {
   async deleteExpired(): Promise<number> {
     const now = new Date();
     let count = 0;
-    
+
     Array.from(this.notifications.values())
       .filter(n => n.expiresAt && n.expiresAt < now)
       .forEach(n => {
         this.notifications.delete(n.id);
         count++;
       });
-    
+
     return count;
   }
 

@@ -107,6 +107,23 @@ var NotificationCenter = class {
     await this.storage.markAllAsRead(userId);
     this.notifyUnreadSubscribers(userId, 0);
   }
+  async markAsUnread(notificationId) {
+    await this.storage.markAsUnread(notificationId);
+    const notification = await this.storage.findById(notificationId);
+    if (notification) {
+      this.notifyEventSubscribers({
+        type: "unread",
+        notification,
+        timestamp: /* @__PURE__ */ new Date()
+      });
+      const count = await this.storage.countUnread(notification.userId);
+      this.notifyUnreadSubscribers(notification.userId, count);
+    }
+  }
+  async markAllAsUnread(userId) {
+    await this.storage.markAllAsUnread(userId);
+    this.notifyUnreadSubscribers(userId, 0);
+  }
   async delete(notificationId) {
     const notification = await this.storage.findById(notificationId);
     await this.storage.delete(notificationId);
@@ -630,6 +647,21 @@ var MemoryStorageAdapter = class {
     Array.from(this.notifications.values()).filter((n) => n.userId === userId && n.status !== "read").forEach((n) => {
       n.status = "read";
       n.readAt = /* @__PURE__ */ new Date();
+      this.notifications.set(n.id, n);
+    });
+  }
+  async markAsUnread(id) {
+    const notification = this.notifications.get(id);
+    if (notification) {
+      notification.status = "delivered";
+      notification.readAt = void 0;
+      this.notifications.set(id, notification);
+    }
+  }
+  async markAllAsUnread(userId) {
+    Array.from(this.notifications.values()).filter((n) => n.userId === userId && n.status !== "delivered").forEach((n) => {
+      n.status = "delivered";
+      n.readAt = void 0;
       this.notifications.set(n.id, n);
     });
   }

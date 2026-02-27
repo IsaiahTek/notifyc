@@ -119,6 +119,8 @@ interface StorageAdapter {
     countUnread(userId: string): Promise<number>;
     markAsRead(id: string): Promise<void>;
     markAllAsRead(userId: string): Promise<void>;
+    markAsUnread(id: string): Promise<void>;
+    markAllAsUnread(userId: string): Promise<void>;
     delete(id: string): Promise<void>;
     getPreferences(userId: string): Promise<NotificationPreferences>;
     savePreferences(userId: string, prefs: NotificationPreferences): Promise<void>;
@@ -168,7 +170,7 @@ interface NotificationConfig {
 }
 type Unsubscribe = () => void;
 interface NotificationEvent {
-    type: 'sent' | 'delivered' | 'read' | 'failed';
+    type: 'sent' | 'delivered' | 'read' | 'unread' | 'failed';
     notification: Notification;
     timestamp: Date;
 }
@@ -202,6 +204,8 @@ declare class NotificationCenter {
     getStats(userId: string): Promise<NotificationStats>;
     markAsRead(notificationId: string): Promise<void>;
     markAllAsRead(userId: string): Promise<void>;
+    markAsUnread(notificationId: string): Promise<void>;
+    markAllAsUnread(userId: string): Promise<void>;
     delete(notificationId: string): Promise<void>;
     deleteAll(userId: string): Promise<void>;
     getPreferences(userId: string): Promise<NotificationPreferences>;
@@ -271,6 +275,8 @@ declare class MemoryStorageAdapter implements StorageAdapter {
     countUnread(userId: string): Promise<number>;
     markAsRead(id: string): Promise<void>;
     markAllAsRead(userId: string): Promise<void>;
+    markAsUnread(id: string): Promise<void>;
+    markAllAsUnread(userId: string): Promise<void>;
     delete(id: string): Promise<void>;
     getPreferences(userId: string): Promise<NotificationPreferences>;
     savePreferences(userId: string, prefs: NotificationPreferences): Promise<void>;

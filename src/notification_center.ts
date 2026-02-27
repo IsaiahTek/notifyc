@@ -163,6 +163,31 @@ export class NotificationCenter {
     this.notifyUnreadSubscribers(userId, 0);
   }
 
+  async markAsUnread(notificationId: string): Promise<void> {
+    await this.storage.markAsUnread(notificationId);
+
+    // Get notification and notify subscribers
+    const notification = await this.storage.findById(notificationId);
+    if (notification) {
+      this.notifyEventSubscribers({
+        type: 'unread',
+        notification,
+        timestamp: new Date()
+      });
+
+      // Update unread count
+      const count = await this.storage.countUnread(notification.userId);
+      this.notifyUnreadSubscribers(notification.userId, count);
+    }
+  }
+
+  async markAllAsUnread(userId: string): Promise<void> {
+    await this.storage.markAllAsUnread(userId);
+
+    // Update unread count
+    this.notifyUnreadSubscribers(userId, 0);
+  }
+
   async delete(notificationId: string): Promise<void> {
     const notification = await this.storage.findById(notificationId);
     await this.storage.delete(notificationId);

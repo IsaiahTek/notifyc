@@ -187,6 +187,8 @@ export interface StorageAdapter {
   // Updates
   markAsRead(id: string): Promise<void>;
   markAllAsRead(userId: string): Promise<void>;
+  markAsUnread(id: string): Promise<void>;
+  markAllAsUnread(userId: string): Promise<void>;
   delete(id: string): Promise<void>;
   
   // Preferences
@@ -278,7 +280,7 @@ export interface NotificationConfig {
 export type Unsubscribe = () => void;
 
 export interface NotificationEvent {
-  type: 'sent' | 'delivered' | 'read' | 'failed';
+  type: 'sent' | 'delivered' | 'read' | 'unread' | 'failed';
   notification: Notification;
   timestamp: Date;
 }
