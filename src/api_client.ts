@@ -249,7 +249,12 @@ export class NotificationApiClient {
         wsUrl.searchParams.set('userId', this.config.userId);
         if (token) wsUrl.searchParams.set('token', token);
 
-        this.ws = io(wsUrl.toString());
+        this.ws = io(wsUrl.toString(), {
+          auth: {
+            token,
+          },
+          withCredentials: true,
+        });
         console.log('WS URL: ', wsUrl.toString(), this.ws);
 
         this.ws.on('connect', () => settle(true));

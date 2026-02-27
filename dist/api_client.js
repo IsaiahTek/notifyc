@@ -371,7 +371,12 @@ var NotificationApiClient = /** @class */ (function () {
                                 wsUrl.searchParams.set('userId', this.config.userId);
                                 if (token)
                                     wsUrl.searchParams.set('token', token);
-                                this.ws = (0, socket_io_client_1.io)(wsUrl.toString());
+                                this.ws = (0, socket_io_client_1.io)(wsUrl.toString(), {
+                                    auth: {
+                                        token: token,
+                                    },
+                                    withCredentials: true,
+                                });
                                 console.log('WS URL: ', wsUrl.toString(), this.ws);
                                 this.ws.on('connect', function () { return settle(true); });
                                 this.ws.on('message', function (event) {
