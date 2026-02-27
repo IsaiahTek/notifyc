@@ -248,6 +248,8 @@ export class NotificationApiClient {
         this.ws = io(`${base}/notifications`, {
           auth: {
             token,
+          },
+          query: {
             userId: this.config.userId,
           },
           withCredentials: true,

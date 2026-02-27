@@ -370,6 +370,8 @@ var NotificationApiClient = /** @class */ (function () {
                                 this.ws = (0, socket_io_client_1.io)("".concat(base, "/notifications"), {
                                     auth: {
                                         token: token,
+                                    },
+                                    query: {
                                         userId: this.config.userId,
                                     },
                                     withCredentials: true,
