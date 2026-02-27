@@ -140,6 +140,24 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
         await center.markAllAsRead(userId);
         this.eventEmitter.emit('unread:changed', userId, 0);
     }
+    async markAsUnreadForUser(userId, notificationId) {
+        const center = this.getCenter();
+        const notification = await center.getById(notificationId);
+        if (!notification) {
+            throw new common_1.NotFoundException('Notification not found.');
+        }
+        if (String(notification.userId) !== String(userId)) {
+            throw new common_1.ForbiddenException('Cannot mark another user\'s notification as unread.');
+        }
+        await center.markAsUnread(notificationId);
+        const count = await center.getUnreadCount(userId);
+        this.eventEmitter.emit('unread:changed', userId, count);
+    }
+    async markAllAsUnread(userId) {
+        const center = this.getCenter();
+        await center.markAllAsUnread(userId);
+        this.eventEmitter.emit('unread:changed', userId, 0);
+    }
     async delete(notificationId) {
         const center = this.getCenter();
         return center.delete(notificationId);

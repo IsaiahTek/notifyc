@@ -20,6 +20,8 @@ export declare class NotificationsService implements OnModuleInit, OnModuleDestr
     markAsRead(notificationId: string): Promise<void>;
     markAsReadForUser(userId: string, notificationId: string): Promise<void>;
     markAllAsRead(userId: string): Promise<void>;
+    markAsUnreadForUser(userId: string, notificationId: string): Promise<void>;
+    markAllAsUnread(userId: string): Promise<void>;
     delete(notificationId: string): Promise<void>;
     deleteForUser(userId: string, notificationId: string): Promise<void>;
     deleteAll(userId: string): Promise<void>;

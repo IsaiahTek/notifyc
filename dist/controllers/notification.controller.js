@@ -180,7 +180,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], NotificationsController.prototype, "sendBatch", null);
 __decorate([
-    (0, common_1.Post)(':userId/:id/read'),
+    (0, common_1.Patch)(':userId/:id/read'),
     __param(0, (0, common_1.Param)('userId')),
     __param(1, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -188,7 +188,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], NotificationsController.prototype, "markAsRead", null);
 __decorate([
-    (0, common_1.Post)(':userId/read-all'),
+    (0, common_1.Patch)(':userId/read-all'),
     __param(0, (0, common_1.Param)('userId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),

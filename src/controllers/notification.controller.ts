@@ -2,7 +2,7 @@
 // REST API CONTROLLER
 // ============================================================================
 
-import { Controller, Put, Post, Delete, Get, Param, Query, Body, Sse, MessageEvent, Req } from "@nestjs/common";
+import { Controller, Put, Post, Delete, Get, Param, Query, Body, Sse, MessageEvent, Req, Patch } from "@nestjs/common";
 import { Observable } from "rxjs";
 
 type RequestLike = {
@@ -124,7 +124,7 @@ export class NotificationsController {
         return this.notificationsService.sendBatch(inputs);
     }
 
-    @Post(':userId/:id/read')
+    @Patch(':userId/:id/read')
     async markAsRead(
         @Param('userId') userId: string,
         @Param('id') id: string
@@ -133,7 +133,7 @@ export class NotificationsController {
         return { success: true };
     }
 
-    @Post(':userId/read-all')
+    @Patch(':userId/read-all')
     async markAllAsRead(@Param('userId') userId: string) {
         await this.notificationsService.markAllAsRead(userId);
         return { success: true };

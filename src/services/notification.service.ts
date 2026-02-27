@@ -166,6 +166,29 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
         this.eventEmitter.emit('unread:changed', userId, 0);
     }
 
+    async markAsUnreadForUser(userId: string, notificationId: string): Promise<void> {
+        const center = this.getCenter();
+        const notification = await center.getById(notificationId);
+
+        if (!notification) {
+            throw new NotFoundException('Notification not found.');
+        }
+
+        if (String(notification.userId) !== String(userId)) {
+            throw new ForbiddenException('Cannot mark another user\'s notification as unread.');
+        }
+
+        await center.markAsUnread(notificationId);
+        const count = await center.getUnreadCount(userId);
+        this.eventEmitter.emit('unread:changed', userId, count);
+    }
+
+    async markAllAsUnread(userId: string): Promise<void> {
+        const center = this.getCenter();
+        await center.markAllAsUnread(userId);
+        this.eventEmitter.emit('unread:changed', userId, 0);
+    }
+
     async delete(notificationId: string): Promise<void> {
         const center = this.getCenter();
         return center.delete(notificationId);
