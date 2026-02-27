@@ -288,9 +288,18 @@ var NotificationApiClient = /** @class */ (function () {
                                     resolve(value);
                                 };
                                 _this.sse = new EventSource(streamUrl.toString(), { withCredentials: true });
-                                _this.sse.addEventListener('initial-data', _this.handleSSEMessage('initial-data', onMessage));
-                                _this.sse.addEventListener('notification', _this.handleSSEMessage('notification', onMessage));
-                                _this.sse.addEventListener('unread-count', _this.handleSSEMessage('unread-count', onMessage));
+                                _this.sse.addEventListener('initial-data', function (event) {
+                                    console.log("INITIAL DATA", event.data);
+                                    _this.handleSSEMessage('initial-data', onMessage);
+                                });
+                                _this.sse.addEventListener('notification', function (event) {
+                                    console.log("NOTIFICATION", event.data);
+                                    _this.handleSSEMessage('notification', onMessage);
+                                });
+                                _this.sse.addEventListener('unread-count', function (event) {
+                                    console.log("UNREAD COUNT", event.data);
+                                    _this.handleSSEMessage('unread-count', onMessage);
+                                });
                                 var timeout = setTimeout(function () {
                                     var _a;
                                     if (!opened) {

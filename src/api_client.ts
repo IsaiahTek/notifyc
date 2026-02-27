@@ -152,9 +152,18 @@ export class NotificationApiClient {
       };
 
       this.sse = new EventSource(streamUrl.toString(), { withCredentials: true });
-      this.sse.addEventListener('initial-data', this.handleSSEMessage('initial-data', onMessage));
-      this.sse.addEventListener('notification', this.handleSSEMessage('notification', onMessage));
-      this.sse.addEventListener('unread-count', this.handleSSEMessage('unread-count', onMessage));
+      this.sse.addEventListener('initial-data', (event) => {
+        console.log("INITIAL DATA", event.data)
+        this.handleSSEMessage('initial-data', onMessage);
+      });
+      this.sse.addEventListener('notification', (event) => {
+        console.log("NOTIFICATION", event.data)
+        this.handleSSEMessage('notification', onMessage);
+      });
+      this.sse.addEventListener('unread-count', (event) => {
+        console.log("UNREAD COUNT", event.data)
+        this.handleSSEMessage('unread-count', onMessage);
+      });
 
       const timeout = setTimeout(() => {
         if (!opened) {
