@@ -42,18 +42,12 @@ let NotificationsController = class NotificationsController {
                 // Stringify the IDs to handle cases where userId is an ObjectId or other complex type
                 if (String(notification.userId) === String(userId)) {
                     console.log(`Emitting notification to client ${userId}:`, notification);
-                    push('notification', {
-                        type: 'notification',
-                        notification,
-                    });
+                    push('notification', notification);
                 }
             });
             const unsubscribeUnread = this.notificationsService.onUnreadCountChange(userId, (count, changedUserId) => {
                 if (String(changedUserId) === String(userId)) {
-                    push('unread-count', {
-                        type: 'unread-count',
-                        count,
-                    });
+                    push('unread-count', count);
                 }
             });
             const close = () => {
