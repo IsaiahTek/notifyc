@@ -28,6 +28,12 @@ export declare class NotificationsController {
     markAllAsRead(userId: string): Promise<{
         success: boolean;
     }>;
+    markAsUnread(userId: string, id: string): Promise<{
+        success: boolean;
+    }>;
+    markAllAsUnread(userId: string): Promise<{
+        success: boolean;
+    }>;
     deleteAll(userId: string): Promise<{
         success: boolean;
     }>;

@@ -139,6 +139,21 @@ export class NotificationsController {
         return { success: true };
     }
 
+    @Patch(':userId/:id/unread')
+    async markAsUnread(
+        @Param('userId') userId: string,
+        @Param('id') id: string
+    ) {
+        await this.notificationsService.markAsUnreadForUser(userId, id);
+        return { success: true };
+    }
+
+    @Patch(':userId/unread-all')
+    async markAllAsUnread(@Param('userId') userId: string) {
+        await this.notificationsService.markAllAsUnread(userId);
+        return { success: true };
+    }
+
     @Delete(':userId/all')
     async deleteAll(@Param('userId') userId: string) {
         await this.notificationsService.deleteAll(userId);

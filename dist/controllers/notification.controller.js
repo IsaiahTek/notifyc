@@ -100,6 +100,14 @@ let NotificationsController = class NotificationsController {
         await this.notificationsService.markAllAsRead(userId);
         return { success: true };
     }
+    async markAsUnread(userId, id) {
+        await this.notificationsService.markAsUnreadForUser(userId, id);
+        return { success: true };
+    }
+    async markAllAsUnread(userId) {
+        await this.notificationsService.markAllAsUnread(userId);
+        return { success: true };
+    }
     async deleteAll(userId) {
         await this.notificationsService.deleteAll(userId);
         return { success: true };
@@ -194,6 +202,21 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], NotificationsController.prototype, "markAllAsRead", null);
+__decorate([
+    (0, common_1.Patch)(':userId/:id/unread'),
+    __param(0, (0, common_1.Param)('userId')),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], NotificationsController.prototype, "markAsUnread", null);
+__decorate([
+    (0, common_1.Patch)(':userId/unread-all'),
+    __param(0, (0, common_1.Param)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], NotificationsController.prototype, "markAllAsUnread", null);
 __decorate([
     (0, common_1.Delete)(':userId/all'),
     __param(0, (0, common_1.Param)('userId')),
