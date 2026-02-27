@@ -92,10 +92,14 @@ export function initializeNotifications(config: NotificationConfig, onInitialize
       connected = await apiClient!.connectWebSocket(onMessage);
       if (connected) connectedTransport = 'websocket';
       if (!connected) {
-        updateRealtime('sse', 'fallback', 'fallback-to-sse');
-        emitDebug('initialize', 'fallback-to-sse', 'warn');
-        connected = await apiClient!.connectSSE(onMessage);
-        if (connected) connectedTransport = 'sse';
+        try {
+          updateRealtime('sse', 'fallback', 'fallback-to-sse');
+          emitDebug('initialize', 'fallback-to-sse', 'warn');
+          connected = await apiClient!.connectSSE(onMessage);
+          if (connected) connectedTransport = 'sse';
+        } catch (error) {
+
+        }
       }
     } else if (preferredTransport === 'polling') {
       connected = false;

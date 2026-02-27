@@ -102,7 +102,7 @@ function initializeNotifications(config, onInitialized) {
         }
     };
     var connectRealtime = function () { return __awaiter(_this, void 0, void 0, function () {
-        var preferredTransport, connected, connectedTransport, state, state;
+        var preferredTransport, connected, connectedTransport, error_1, state, state;
         var _this = this;
         var _a;
         return __generator(this, function (_b) {
@@ -128,25 +128,31 @@ function initializeNotifications(config, onInitialized) {
                     if (connected)
                         connectedTransport = 'websocket';
                     _b.label = 3;
-                case 3: return [3 /*break*/, 9];
+                case 3: return [3 /*break*/, 11];
                 case 4:
-                    if (!(preferredTransport === 'websocket')) return [3 /*break*/, 8];
+                    if (!(preferredTransport === 'websocket')) return [3 /*break*/, 10];
                     return [4 /*yield*/, exports.apiClient.connectWebSocket(onMessage)];
                 case 5:
                     connected = _b.sent();
                     if (connected)
                         connectedTransport = 'websocket';
-                    if (!!connected) return [3 /*break*/, 7];
+                    if (!!connected) return [3 /*break*/, 9];
+                    _b.label = 6;
+                case 6:
+                    _b.trys.push([6, 8, , 9]);
                     updateRealtime('sse', 'fallback', 'fallback-to-sse');
                     emitDebug('initialize', 'fallback-to-sse', 'warn');
                     return [4 /*yield*/, exports.apiClient.connectSSE(onMessage)];
-                case 6:
+                case 7:
                     connected = _b.sent();
                     if (connected)
                         connectedTransport = 'sse';
-                    _b.label = 7;
-                case 7: return [3 /*break*/, 9];
+                    return [3 /*break*/, 9];
                 case 8:
+                    error_1 = _b.sent();
+                    return [3 /*break*/, 9];
+                case 9: return [3 /*break*/, 11];
+                case 10:
                     if (preferredTransport === 'polling') {
                         connected = false;
                         connectedTransport = 'polling';
@@ -155,8 +161,8 @@ function initializeNotifications(config, onInitialized) {
                         connected = false;
                         connectedTransport = 'none';
                     }
-                    _b.label = 9;
-                case 9:
+                    _b.label = 11;
+                case 11:
                     if (!connected && preferredTransport !== 'none' && config.pollInterval) {
                         exports.apiClient.startPolling(function () { return __awaiter(_this, void 0, void 0, function () {
                             return __generator(this, function (_a) {
