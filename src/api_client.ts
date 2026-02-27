@@ -152,17 +152,26 @@ export class NotificationApiClient {
       };
 
       this.sse = new EventSource(streamUrl.toString(), { withCredentials: true });
-      this.sse.addEventListener('initial-data', (event) => {
-        console.log("INITIAL DATA", event.data)
-        this.handleSSEMessage('initial-data', onMessage);
+      this.sse.addEventListener('initial-data', (event: MessageEvent) => {
+        this.handleSSEMessage(
+          'initial-data',
+          onMessage,
+          event.data
+        );
       });
-      this.sse.addEventListener('notification', (event) => {
-        console.log("NOTIFICATION", event.data)
-        this.handleSSEMessage('notification', onMessage);
+      this.sse.addEventListener('notification', (event: MessageEvent) => {
+        this.handleSSEMessage(
+          'notification',
+          onMessage,
+          event.data
+        );
       });
-      this.sse.addEventListener('unread-count', (event) => {
-        console.log("UNREAD COUNT", event.data)
-        this.handleSSEMessage('unread-count', onMessage);
+      this.sse.addEventListener('unread-count', (event: MessageEvent) => {
+        this.handleSSEMessage(
+          'unread-count',
+          onMessage,
+          event.data
+        );
       });
 
       const timeout = setTimeout(() => {
@@ -258,22 +267,21 @@ export class NotificationApiClient {
     }
   }
 
-  private handleSSEMessage = (eventType: string, onMessage: (data: any) => void) => (event: MessageEvent) => {
-    let parsedData: any = event.data;
-    if (typeof event.data === 'string') {
+  private handleSSEMessage(eventType: string, onMessage: (data: any) => void, rawData?: any) {
+    let parsed = rawData;
+
+    if (typeof rawData === 'string') {
       try {
-        parsedData = JSON.parse(event.data);
+        parsed = JSON.parse(rawData);
       } catch {
-        parsedData = { data: event.data };
+        parsed = { data: rawData };
       }
     }
 
-    const normalized =
-      parsedData && typeof parsedData === 'object'
-        ? { ...parsedData, type: parsedData.type ?? eventType }
-        : { type: eventType, data: parsedData };
-
-    this.handleMessage(normalized, onMessage);
+    onMessage({
+      type: eventType,
+      ...(parsed ?? {})
+    });
   }
 
   // Helper function to process messages (optional, based on your original logic)

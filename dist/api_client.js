@@ -56,21 +56,6 @@ var NotificationApiClient = /** @class */ (function () {
         var _this = this;
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
-        this.handleSSEMessage = function (eventType, onMessage) { return function (event) {
-            var _a;
-            var parsedData = event.data;
-            if (typeof event.data === 'string') {
-                try {
-                    parsedData = JSON.parse(event.data);
-                }
-                catch (_b) {
-                    parsedData = { data: event.data };
-                }
-            }
-            var normalized = parsedData && typeof parsedData === 'object'
-                ? __assign(__assign({}, parsedData), { type: (_a = parsedData.type) !== null && _a !== void 0 ? _a : eventType }) : { type: eventType, data: parsedData };
-            _this.handleMessage(normalized, onMessage);
-        }; };
         // Helper function to process messages (optional, based on your original logic)
         this.handleMessage = function (data, onMessage) {
             if (data.notification) {
@@ -289,16 +274,13 @@ var NotificationApiClient = /** @class */ (function () {
                                 };
                                 _this.sse = new EventSource(streamUrl.toString(), { withCredentials: true });
                                 _this.sse.addEventListener('initial-data', function (event) {
-                                    console.log("INITIAL DATA", event.data);
-                                    _this.handleSSEMessage('initial-data', onMessage);
+                                    _this.handleSSEMessage('initial-data', onMessage, event.data);
                                 });
                                 _this.sse.addEventListener('notification', function (event) {
-                                    console.log("NOTIFICATION", event.data);
-                                    _this.handleSSEMessage('notification', onMessage);
+                                    _this.handleSSEMessage('notification', onMessage, event.data);
                                 });
                                 _this.sse.addEventListener('unread-count', function (event) {
-                                    console.log("UNREAD COUNT", event.data);
-                                    _this.handleSSEMessage('unread-count', onMessage);
+                                    _this.handleSSEMessage('unread-count', onMessage, event.data);
                                 });
                                 var timeout = setTimeout(function () {
                                     var _a;
@@ -400,6 +382,18 @@ var NotificationApiClient = /** @class */ (function () {
                 }
             });
         });
+    };
+    NotificationApiClient.prototype.handleSSEMessage = function (eventType, onMessage, rawData) {
+        var parsed = rawData;
+        if (typeof rawData === 'string') {
+            try {
+                parsed = JSON.parse(rawData);
+            }
+            catch (_a) {
+                parsed = { data: rawData };
+            }
+        }
+        onMessage(__assign({ type: eventType }, (parsed !== null && parsed !== void 0 ? parsed : {})));
     };
     NotificationApiClient.prototype.disconnectWebSocket = function () {
         if (this.sse) {
