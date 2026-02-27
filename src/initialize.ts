@@ -8,7 +8,7 @@ import { notificationStore } from './store'
 // ============================================================================
 export let apiClient: NotificationApiClient | null = null;
 
-export function initializeNotifications(config: NotificationConfig, onInitialized?: () => void) {
+export function initializeNotifications({config, onInitialized, onConnected, onNotification}: {config: NotificationConfig, onInitialized?: () => void, onConnected?: () => void, onNotification?: (notification: Notification) => void}) {
   apiClient = new NotificationApiClient(config);
 
   const getState = (): NotificationState => {
@@ -56,6 +56,7 @@ export function initializeNotifications(config: NotificationConfig, onInitialize
   const onMessage = (data: any, isSSE: boolean = false) => {
     // console.log(`GOT NEW "${data.type}" NOTIFICATION: `, data)
     if (data.type === 'notification') {
+      onNotification?.(isSSE ? data.data : data.notification);
       addNotification(isSSE ? data.data : data.notification);
     } else if (data.type === 'unread-count') {
       const state = getState();
@@ -81,22 +82,34 @@ export function initializeNotifications(config: NotificationConfig, onInitialize
 
     if (preferredTransport === 'sse') {
       connected = await apiClient!.connectSSE(onMessage);
-      if (connected) connectedTransport = 'sse';
+      if (connected) {
+        onConnected?.();
+        connectedTransport = 'sse';
+      }
       if (!connected && config.wsUrl) {
         updateRealtime('websocket', 'fallback', 'fallback-to-websocket');
         emitDebug('initialize', 'fallback-to-websocket', 'warn');
         connected = await apiClient!.connectWebSocket(onMessage);
-        if (connected) connectedTransport = 'websocket';
+        if (connected) {
+          onConnected?.();
+          connectedTransport = 'websocket';
+        }
       }
     } else if (preferredTransport === 'websocket') {
       connected = await apiClient!.connectWebSocket(onMessage);
-      if (connected) connectedTransport = 'websocket';
+      if (connected) {
+        onConnected?.();
+        connectedTransport = 'websocket';
+      }
       if (!connected) {
         try {
           updateRealtime('sse', 'fallback', 'fallback-to-sse');
           emitDebug('initialize', 'fallback-to-sse', 'warn');
           connected = await apiClient!.connectSSE(onMessage);
-          if (connected) connectedTransport = 'sse';
+          if (connected) {
+            onConnected?.();
+            connectedTransport = 'sse';
+          }
         } catch (error) {
 
         }

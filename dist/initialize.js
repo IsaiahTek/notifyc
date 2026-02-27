@@ -58,8 +58,9 @@ var store_1 = require("./store");
 // INITIALIZATION (Call once in your app)
 // ============================================================================
 exports.apiClient = null;
-function initializeNotifications(config, onInitialized) {
+function initializeNotifications(_a) {
     var _this = this;
+    var config = _a.config, onInitialized = _a.onInitialized, onConnected = _a.onConnected, onNotification = _a.onNotification;
     exports.apiClient = new api_client_1.NotificationApiClient(config);
     var getState = function () {
         var snapshot = store_1.notificationStore.snapshot;
@@ -91,6 +92,7 @@ function initializeNotifications(config, onInitialized) {
         if (isSSE === void 0) { isSSE = false; }
         // console.log(`GOT NEW "${data.type}" NOTIFICATION: `, data)
         if (data.type === 'notification') {
+            onNotification === null || onNotification === void 0 ? void 0 : onNotification(isSSE ? data.data : data.notification);
             (0, handlers_1.addNotification)(isSSE ? data.data : data.notification);
         }
         else if (data.type === 'unread-count') {
@@ -118,16 +120,20 @@ function initializeNotifications(config, onInitialized) {
                     return [4 /*yield*/, exports.apiClient.connectSSE(onMessage)];
                 case 1:
                     connected = _b.sent();
-                    if (connected)
+                    if (connected) {
+                        onConnected === null || onConnected === void 0 ? void 0 : onConnected();
                         connectedTransport = 'sse';
+                    }
                     if (!(!connected && config.wsUrl)) return [3 /*break*/, 3];
                     updateRealtime('websocket', 'fallback', 'fallback-to-websocket');
                     emitDebug('initialize', 'fallback-to-websocket', 'warn');
                     return [4 /*yield*/, exports.apiClient.connectWebSocket(onMessage)];
                 case 2:
                     connected = _b.sent();
-                    if (connected)
+                    if (connected) {
+                        onConnected === null || onConnected === void 0 ? void 0 : onConnected();
                         connectedTransport = 'websocket';
+                    }
                     _b.label = 3;
                 case 3: return [3 /*break*/, 11];
                 case 4:
@@ -135,8 +141,10 @@ function initializeNotifications(config, onInitialized) {
                     return [4 /*yield*/, exports.apiClient.connectWebSocket(onMessage)];
                 case 5:
                     connected = _b.sent();
-                    if (connected)
+                    if (connected) {
+                        onConnected === null || onConnected === void 0 ? void 0 : onConnected();
                         connectedTransport = 'websocket';
+                    }
                     if (!!connected) return [3 /*break*/, 9];
                     _b.label = 6;
                 case 6:
@@ -146,8 +154,10 @@ function initializeNotifications(config, onInitialized) {
                     return [4 /*yield*/, exports.apiClient.connectSSE(onMessage)];
                 case 7:
                     connected = _b.sent();
-                    if (connected)
+                    if (connected) {
+                        onConnected === null || onConnected === void 0 ? void 0 : onConnected();
                         connectedTransport = 'sse';
+                    }
                     return [3 /*break*/, 9];
                 case 8:
                     error_1 = _b.sent();
