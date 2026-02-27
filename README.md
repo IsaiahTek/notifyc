@@ -34,13 +34,21 @@ import { initializeNotifications } from 'notifyc-react';
 // Initialize on client side
 if (typeof window !== 'undefined') {
   initializeNotifications({
-    apiUrl: 'http://localhost:3000',
-    userId: 'user:123',
-    realtimeTransport: 'sse', // Default
-    ssePath: '/notifications/:userId/stream', // Optional
-    wsUrl: 'http://localhost:3000/notifications', // Optional fallback/override
-    pollInterval: 5000, // Final fallback
-    getAuthToken: async () => localStorage.getItem('token')
+    config: {
+      apiUrl: 'http://localhost:3000',
+      userId: 'user:123',
+      realtimeTransport: 'sse', // Default
+      ssePath: '/notifications/:userId/stream', // Optional
+      wsUrl: 'http://localhost:3000/notifications', // Optional fallback/override
+      pollInterval: 5000, // Final fallback
+      getAuthToken: async () => localStorage.getItem('token')
+    },
+    onInitialized: () => console.log('Initialized'),
+    onConnected: () => console.log('Connected to realtime'),
+    onNotification: (notification) => {
+      // Optional: trigger global toast
+      console.log('Received notification:', notification);
+    }
   });
 }
 
@@ -54,37 +62,6 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
-```
-```tsx
-    // Now you can just initialize once and use anywhere!
-    initializeNotifications({
-      config: {
-        apiUrl,
-        userId: user.id,
-        wsUrl,
-        pollInterval: isWebSocketMode ? undefined : pollInterval,
-        getAuthToken: async () => authToken,
-        dataLocator: locateNotificationData,
-        debug: true,
-        realtimeTransport: "sse",
-        onDebugEvent: (e) => {
-          console.log("notifyc-debug-" + section, e);
-          try {
-            setLastDebugEvent(typeof e === "string" ? e : JSON.stringify(e));
-          } catch {
-            setLastDebugEvent("debug event");
-          }
-        },
-      },
-      onNotification: (notification) => {
-        console.log("notifyc-notification-" + section, notification);
-        createToast({
-          title: notification.title,
-          messages: [notification.body],
-          type: 'info',
-        });
-      },
-    });
 ```
 ### Step 2: Use Anywhere
 
@@ -173,7 +150,12 @@ function NotificationCenter() {
 ### Initialization
 
 ```typescript
-initializeNotifications(config: NotificationConfig)
+initializeNotifications(options: { 
+  config: NotificationConfig,
+  onInitialized?: () => void,
+  onConnected?: () => void,
+  onNotification?: (notification: Notification) => void 
+})
 
 interface NotificationConfig {
   // Required
@@ -213,6 +195,8 @@ const {
   // Actions
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
+  markAsUnread: (id: string) => Promise<void>;
+  markAllAsUnread: () => Promise<void>;
   deleteNotification: (id: string) => Promise<void>;
   deleteAll: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -286,6 +270,14 @@ const realtime = useNotificationRealtime();
 // }
 ```
 
+#### useNotificationConnection()
+
+Check if the client is currently connected to the realtime server:
+
+```typescript
+const isConnected: boolean = useNotificationConnection();
+```
+
 #### useNotification()
 
 Get single notification by ID:
@@ -305,14 +297,18 @@ import {
   fetchNotifications,
   markAsRead,
   markAllAsRead,
+  markAsUnread,
+  markAllAsUnread,
   deleteNotification,
   deleteAll,
   updatePreferences
 } from 'notifyc-react';
 
 // Call from anywhere - no hooks needed!
+await fetchNotifications(); // manual refresh
 await markAsRead('notif_123');
 await markAllAsRead();
+await markAsUnread('notif_123');
 await deleteNotification('notif_456');
 ```
 
@@ -520,8 +516,10 @@ function NotificationSoundPlayer() {
 
 ```tsx
 initializeNotifications({
-  apiUrl: 'http://localhost:3000',
-  userId: 'user:123'
+  config: {
+    apiUrl: 'http://localhost:3000',
+    userId: 'user:123'
+  }
 });
 
 // Uses GET /notifications/:userId/stream by default
@@ -531,10 +529,12 @@ initializeNotifications({
 
 ```tsx
 initializeNotifications({
-  apiUrl: 'http://localhost:3000',
-  realtimeTransport: 'websocket',
-  wsUrl: 'http://localhost:3000/notifications',
-  userId: 'user:123'
+  config: {
+    apiUrl: 'http://localhost:3000',
+    realtimeTransport: 'websocket',
+    wsUrl: 'http://localhost:3000/notifications',
+    userId: 'user:123'
+  }
 });
 
 // Components automatically receive real-time updates! ✨
@@ -564,10 +564,12 @@ wss.on('connection', (ws, req) => {
 
 ```tsx
 initializeNotifications({
-  apiUrl: 'http://localhost:3000',
-  realtimeTransport: 'polling',
-  userId: 'user:123',
-  pollInterval: 5000 // Poll every 5 seconds
+  config: {
+    apiUrl: 'http://localhost:3000',
+    realtimeTransport: 'polling',
+    userId: 'user:123',
+    pollInterval: 5000 // Poll every 5 seconds
+  }
 });
 ```
 
@@ -691,8 +693,10 @@ beforeEach(() => {
   notificationStore.reset();
   
   initializeNotifications({
-    apiUrl: 'http://test',
-    userId: 'test-user'
+    config: {
+      apiUrl: 'http://test',
+      userId: 'test-user'
+    }
   });
 });
 
