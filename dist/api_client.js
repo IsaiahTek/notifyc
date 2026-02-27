@@ -339,11 +339,11 @@ var NotificationApiClient = /** @class */ (function () {
                     this.ws = undefined;
                 }
                 this.wsPromise = new Promise(function (resolve) { return __awaiter(_this, void 0, void 0, function () {
-                    var settled, settle, base, token, _a, wsUrl, _b;
+                    var settled, settle, base, token, _a, err_1;
                     var _this = this;
-                    var _c;
-                    return __generator(this, function (_d) {
-                        switch (_d.label) {
+                    var _b;
+                    return __generator(this, function (_c) {
+                        switch (_c.label) {
                             case 0:
                                 settled = false;
                                 settle = function (value) {
@@ -353,50 +353,52 @@ var NotificationApiClient = /** @class */ (function () {
                                     _this.wsPromise = undefined;
                                     resolve(value);
                                 };
-                                _d.label = 1;
+                                _c.label = 1;
                             case 1:
-                                _d.trys.push([1, 5, , 6]);
-                                base = ((_c = this.config.wsUrl) !== null && _c !== void 0 ? _c : this.config.apiUrl).replace(/\/+$/, '');
+                                _c.trys.push([1, 5, , 6]);
+                                base = ((_b = this.config.wsUrl) !== null && _b !== void 0 ? _b : this.config.apiUrl).replace(/\/+$/, '');
                                 if (!this.config.getAuthToken) return [3 /*break*/, 3];
                                 return [4 /*yield*/, this.config.getAuthToken()];
                             case 2:
-                                _a = _d.sent();
+                                _a = _c.sent();
                                 return [3 /*break*/, 4];
                             case 3:
                                 _a = null;
-                                _d.label = 4;
+                                _c.label = 4;
                             case 4:
                                 token = _a;
-                                wsUrl = new URL("".concat(base, "/notifications"));
-                                wsUrl.searchParams.set('userId', this.config.userId);
-                                if (token)
-                                    wsUrl.searchParams.set('token', token);
-                                this.ws = (0, socket_io_client_1.io)(wsUrl.toString(), {
+                                this.ws = (0, socket_io_client_1.io)(base, {
                                     auth: {
                                         token: token,
+                                        userId: this.config.userId,
                                     },
                                     withCredentials: true,
+                                    transports: ['websocket'], // optional but recommended
                                 });
-                                console.log('WS URL: ', wsUrl.toString(), this.ws);
-                                this.ws.on('connect', function () { return settle(true); });
-                                this.ws.on('message', function (event) {
-                                    try {
-                                        console.log('WS Message RAW: ', event);
-                                        onMessage(JSON.parse(event.data));
-                                    }
-                                    catch (_a) {
-                                        console.log('WS Message: ', event);
-                                        onMessage(event.data);
-                                    }
+                                console.log('WS Connecting to:', base);
+                                this.ws.on('connect', function () {
+                                    console.log('WS Connected');
+                                    settle(true);
                                 });
-                                this.ws.on('error', function () {
+                                this.ws.onAny(function (eventName, payload) {
+                                    console.log('WS Event:', eventName, payload);
+                                    onMessage({
+                                        type: eventName,
+                                        data: payload,
+                                    });
+                                });
+                                this.ws.on('connect_error', function (err) {
+                                    console.error('WS Connect Error:', err);
                                     if (!settled)
                                         settle(false);
                                 });
-                                this.ws.on('close', function () { });
+                                this.ws.on('disconnect', function (reason) {
+                                    console.log('WS Disconnected:', reason);
+                                });
                                 return [3 /*break*/, 6];
                             case 5:
-                                _b = _d.sent();
+                                err_1 = _c.sent();
+                                console.error('WS Error:', err_1);
                                 settle(false);
                                 return [3 /*break*/, 6];
                             case 6: return [2 /*return*/];
@@ -509,7 +511,7 @@ var NotificationApiClient = /** @class */ (function () {
             clearInterval(this.pollingIntervalId);
         }
         this.pollingIntervalId = setInterval(function () { return __awaiter(_this, void 0, void 0, function () {
-            var err_1;
+            var err_2;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -519,7 +521,7 @@ var NotificationApiClient = /** @class */ (function () {
                         _a.sent();
                         return [3 /*break*/, 3];
                     case 2:
-                        err_1 = _a.sent();
+                        err_2 = _a.sent();
                         return [3 /*break*/, 3];
                     case 3: return [2 /*return*/];
                 }

@@ -245,36 +245,41 @@ export class NotificationApiClient {
           ? await this.config.getAuthToken()
           : null;
 
-        const wsUrl = new URL(`${base}/notifications`);
-        wsUrl.searchParams.set('userId', this.config.userId);
-        if (token) wsUrl.searchParams.set('token', token);
-
-        this.ws = io(wsUrl.toString(), {
+        this.ws = io(base, {
           auth: {
             token,
+            userId: this.config.userId,
           },
           withCredentials: true,
-        });
-        console.log('WS URL: ', wsUrl.toString(), this.ws);
-
-        this.ws.on('connect', () => settle(true));
-
-        this.ws.on('message', (event) => {
-          try {
-            console.log('WS Message RAW: ', event);
-            onMessage(JSON.parse(event.data));
-          } catch {
-            console.log('WS Message: ', event);
-            onMessage(event.data);
-          }
+          transports: ['websocket'], // optional but recommended
         });
 
-        this.ws.on('error', () => {
+        console.log('WS Connecting to:', base);
+
+        this.ws.on('connect', () => {
+          console.log('WS Connected');
+          settle(true);
+        });
+
+        this.ws.onAny((eventName, payload) => {
+          console.log('WS Event:', eventName, payload);
+          onMessage({
+            type: eventName,
+            data: payload,
+          });
+        });
+
+        this.ws.on('connect_error', (err) => {
+          console.error('WS Connect Error:', err);
           if (!settled) settle(false);
         });
 
-        this.ws.on('close', () => { });
-      } catch {
+        this.ws.on('disconnect', (reason) => {
+          console.log('WS Disconnected:', reason);
+        });
+
+      } catch (err) {
+        console.error('WS Error:', err);
         settle(false);
       }
     });
