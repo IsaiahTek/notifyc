@@ -79,6 +79,7 @@ export class NotificationsModule {
         console.log('📦 NotificationsModule.forRoot() called');
         console.log('📦 Options:', {
             hasStorage: !!options.storage,
+            hasQueue: !!options.queue,
             hasTransports: !!options.transports,
             enableWebSocket: options.enableWebSocket,
             enableRestApi: options.enableRestApi,
