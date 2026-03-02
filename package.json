@@ -36,10 +36,10 @@
     "@nestjs/websockets": "^11.1.8",
     "socket.io": "^4.8.1"
   },
-  "dependencies": {
-    "@synq/notifications-core": "github:IsaiahTek/notify-core"
-  },
   "devDependencies": {
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@synq/notifications-core": "github:IsaiahTek/notify-core"
   }
 }

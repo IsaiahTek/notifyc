@@ -78,7 +78,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
             notification = await center.send(input);
             console.log("✅ Notification sent successfully:", notification.id);
 
-            // Emit the local event for the WebSocket to pick up
+            // Emit the local event for the WebSockent to pick up
             this.eventEmitter.emit('notification:sent', notification);
             console.log("✅ Event emitted: notification:sent");
 
