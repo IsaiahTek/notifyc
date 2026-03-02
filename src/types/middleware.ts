@@ -1,8 +1,8 @@
 import { Notification } from "../types";
 
-interface NotificationMiddleware {
+export interface NotificationMiddleware {
   name: string;
-  
+
   // Lifecycle hooks
   beforeSend?(notification: Notification): Promise<Notification | null>; // null = skip
   afterSend?(notification: Notification): Promise<void>;

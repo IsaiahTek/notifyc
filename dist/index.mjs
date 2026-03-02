@@ -62,11 +62,21 @@ var NotificationCenter = class {
     return this.sendBatch(notificationInputs);
   }
   async schedule(input, when) {
-    const notification = await this.send({
-      ...input,
-      scheduledFor: when
-    });
-    return notification.id;
+    let notification = this.buildNotification({ ...input, scheduledFor: when });
+    let _notification = await this.applyBeforeSendMiddleware(notification);
+    if (!_notification) {
+      throw new Error("Notification was filtered out by middleware");
+    }
+    await this.storage.save(_notification);
+    if (this.queue) {
+      const delay = when.getTime() - Date.now();
+      if (delay > 0) {
+        await this.queue.enqueueDelayed(_notification, delay);
+      } else {
+        await this.queue.enqueue(_notification);
+      }
+    }
+    return _notification.id;
   }
   // ========== QUERYING ==========
   async getForUser(userId, filters) {

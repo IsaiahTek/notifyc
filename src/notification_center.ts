@@ -96,11 +96,26 @@ export class NotificationCenter {
   }
 
   async schedule(input: NotificationInput, when: Date): Promise<string> {
-    const notification = await this.send({
-      ...input,
-      scheduledFor: when
-    });
-    return notification.id;
+    // Build notification with scheduled time
+    let notification = this.buildNotification({ ...input, scheduledFor: when });
+    // Apply beforeSend middleware
+    let _notification = await this.applyBeforeSendMiddleware(notification);
+    if (!_notification) {
+      throw new Error('Notification was filtered out by middleware');
+    }
+    // Save to storage
+    await this.storage.save(_notification);
+    // Enqueue if queue is available, otherwise leave as pending
+    if (this.queue) {
+      const delay = when.getTime() - Date.now();
+      if (delay > 0) {
+        await this.queue.enqueueDelayed(_notification, delay);
+      } else {
+        await this.queue.enqueue(_notification);
+      }
+    }
+    // Return the notification id
+    return _notification.id;
   }
 
   // ========== QUERYING ==========

@@ -1,7 +1,7 @@
 
 import { ChannelType, Notification } from "../types";
 
-interface NotificationTemplate {
+export interface NotificationTemplate {
   id: string;
   type: string;
   defaults: {
