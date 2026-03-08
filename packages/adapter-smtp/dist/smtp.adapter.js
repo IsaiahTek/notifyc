@@ -6,9 +6,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SmtpProvider = void 0;
 const nodemailer_1 = __importDefault(require("nodemailer"));
 class SmtpProvider {
-    constructor(host, port, user, pass, fromEmail) {
-        this.fromEmail = fromEmail;
+    constructor({ host, port, user, pass, fromEmail }) {
         this.name = 'email';
+        this.fromEmail = fromEmail;
         this.transporter = nodemailer_1.default.createTransport({
             host,
             port,
@@ -27,8 +27,10 @@ class SmtpProvider {
         try {
             const email = this.resolveEmail(notification, preferences);
             if (!email) {
+                console.error('[SMTP] Recipient email address not found');
                 throw new Error('Recipient email address not found');
             }
+            console.log(`[SMTP] Attempting to send email via SMTP to: ${email}`);
             const info = await this.transporter.sendMail({
                 from: this.fromEmail,
                 to: email,
@@ -36,6 +38,7 @@ class SmtpProvider {
                 text: notification.text || notification.body,
                 html: notification.html || notification.body,
             });
+            console.log(`[SMTP] Email sent successfully. MessageID: ${info.messageId}`);
             return {
                 notificationId: notification.id,
                 channel: 'email',
@@ -60,7 +63,7 @@ class SmtpProvider {
     }
     resolveEmail(notification, preferences) {
         // 1. Check notification data
-        if (notification.data.email && typeof notification.data.email === 'string') {
+        if (notification.data?.email && typeof notification.data.email === 'string') {
             return notification.data.email;
         }
         // 2. Check user preferences

@@ -4,14 +4,17 @@ import { DeliveryReceipt, TransportAdapter, ChannelType, NotificationPreferences
 export class SmtpProvider implements TransportAdapter {
   private transporter;
   name: ChannelType = 'email';
+  private fromEmail: string;
 
-  constructor(
+  constructor({ host, port, user, pass, fromEmail }: {
     host: string,
     port: number,
     user: string,
     pass: string,
-    private fromEmail: string
-  ) {
+    fromEmail: string
+  }) {
+    this.fromEmail = fromEmail;
+    console.log(`[SMTP] Initializing SmtpProvider for ${host}:${port} (from: ${fromEmail})`);
     this.transporter = nodemailer.createTransport({
       host,
       port,
@@ -35,9 +38,11 @@ export class SmtpProvider implements TransportAdapter {
     try {
       const email = this.resolveEmail(notification, preferences);
       if (!email) {
+        console.error('[SMTP] Recipient email address not found');
         throw new Error('Recipient email address not found');
       }
 
+      console.log(`[SMTP] Attempting to send email via SMTP to: ${email}`);
       const info = await this.transporter.sendMail({
         from: this.fromEmail,
         to: email,
@@ -45,6 +50,8 @@ export class SmtpProvider implements TransportAdapter {
         text: notification.text || notification.body,
         html: notification.html || notification.body,
       });
+
+      console.log(`[SMTP] Email sent successfully. MessageID: ${info.messageId}`);
 
       return {
         notificationId: notification.id,
@@ -70,7 +77,7 @@ export class SmtpProvider implements TransportAdapter {
 
   private resolveEmail(notification: EmailNotification, preferences?: NotificationPreferences): string | undefined {
     // 1. Check notification data
-    if (notification.data.email && typeof notification.data.email === 'string') {
+    if (notification.data?.email && typeof notification.data.email === 'string') {
       return notification.data.email;
     }
 
