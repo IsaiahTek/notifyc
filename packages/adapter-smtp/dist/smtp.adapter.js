@@ -15,6 +15,9 @@ class SmtpProvider {
             port,
             secure: port === 465,
             auth: { user, pass },
+            connectionTimeout: 5000, // 5 seconds
+            greetingTimeout: 5000,
+            socketTimeout: 5000,
         });
     }
     async sendBatch(notifications, preferences) {
