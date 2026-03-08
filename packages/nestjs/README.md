@@ -7,7 +7,7 @@ Complete guide for integrating Synq Notifications with **NestJS** and **Express.
 ### NestJS
 
 ```bash
-npm install @synq/notifications-nestjs @notifyc/core
+npm install @notifyc/nestjs @notifyc/core
 # Optional: only needed if you enable the built-in WebSocket gateway
 npm install @nestjs/websockets @nestjs/platform-socket.io socket.io
 ```
@@ -15,7 +15,7 @@ npm install @nestjs/websockets @nestjs/platform-socket.io socket.io
 ### Express.js
 
 ```bash
-npm install @synq/notifications-express @notifyc/core
+npm install @notifyc/express @notifyc/core
 npm install ws
 ```
 
@@ -26,11 +26,11 @@ npm install ws
 ```typescript
 // app.module.ts
 import { Module } from "@nestjs/common";
-import { NotificationsModule } from "@synq/notifications-nestjs";
-import { PostgresStorageAdapter } from "@synq/notifications-storage-postgres";
-import { FirebasePushAdapter } from "@synq/notifications-transport-firebase";
-import { SendGridEmailAdapter } from "@synq/notifications-transport-sendgrid";
-import { RedisQueueAdapter } from "@synq/notifications-queue-redis";
+import { NotificationsModule } from "@notifyc/nestjs";
+import { PostgresStorageAdapter } from "@notifyc/adapter-postgres";
+import { FirebasePushAdapter } from "@notifyc/adapter-fcm";
+import { SendGridEmailAdapter } from "@notifyc/adapter-sendgrid";
+import { RedisQueueAdapter } from "@notifyc/queue-redis";
 
 @Module({
   imports: [
@@ -151,7 +151,7 @@ export class AppModule {}
 
 ```typescript
 import { Injectable } from "@nestjs/common";
-import { NotificationsService } from "@synq/notifications-nestjs";
+import { NotificationsService } from "@notifyc/nestjs";
 
 @Injectable()
 export class UserService {
@@ -180,7 +180,7 @@ export class UserService {
 
 ```typescript
 import { Controller, Post, Param, Request } from "@nestjs/common";
-import { NotificationsService } from "@synq/notifications-nestjs";
+import { NotificationsService } from "@notifyc/nestjs";
 
 @Controller("posts")
 export class PostsController {
@@ -239,7 +239,7 @@ You can also inject the `NotificationCenter` directly:
 
 ```typescript
 import { Injectable, Inject } from '@nestjs/common';
-import { NOTIFICATION_CENTER, NotificationCenter } from '@synq/notifications-nestjs';
+import { NOTIFICATION_CENTER, NotificationCenter } from '@notifyc/nestjs';
 
 @Injectable()
 export class CustomService {
@@ -337,10 +337,10 @@ socket.emit("delete", { notificationId: "notif_123" });
 ```typescript
 import express from "express";
 import http from "http";
-import { createNotificationsMiddleware } from "@synq/notifications-express";
-import { PostgresStorageAdapter } from "@synq/notifications-storage-postgres";
-import { SendGridEmailAdapter } from "@synq/notifications-transport-sendgrid";
-import { RedisQueueAdapter } from "@synq/notifications-queue-redis";
+import { createNotificationsMiddleware } from "@notifyc/express";
+import { PostgresStorageAdapter } from "@notifyc/adapter-postgres";
+import { SendGridEmailAdapter } from "@notifyc/adapter-sendgrid";
+import { RedisQueueAdapter } from "@notifyc/queue-redis";
 
 const app = express();
 const server = http.createServer(app);
@@ -634,7 +634,7 @@ import { Test } from "@nestjs/testing";
 import {
   NotificationsModule,
   NotificationsService,
-} from "@synq/notifications-nestjs";
+} from "@notifyc/nestjs";
 
 describe("UserService", () => {
   let userService: UserService;

@@ -14,32 +14,32 @@
 // │   └── package.json
 // │
 // ├── storage-adapters/
-// │   ├── memory/                    # @synq/notifications-storage-memory
-// │   ├── postgres/                  # @synq/notifications-storage-postgres
-// │   ├── mongodb/                   # @synq/notifications-storage-mongodb
-// │   ├── firestore/                 # @synq/notifications-storage-firestore
-// │   └── rest/                      # @synq/notifications-storage-rest
+// │   ├── memory/                    # @notifyc/storage-memory
+// │   ├── postgres/                  # @notifyc/adapter-postgres
+// │   ├── mongodb/                   # @notifyc/storage-mongodb
+// │   ├── firestore/                 # @notifyc/storage-firestore
+// │   └── rest/                      # @notifyc/storage-rest
 // │
 // ├── transport-adapters/
-// │   ├── email/                     # @synq/notifications-transport-email
-// │   ├── push/                      # @synq/notifications-transport-push
-// │   ├── sms/                       # @synq/notifications-transport-sms
-// │   ├── webhook/                   # @synq/notifications-transport-webhook
-// │   └── inapp/                     # @synq/notifications-transport-inapp
+// │   ├── email/                     # @notifyc/adapter-smtp
+// │   ├── push/                      # @notifyc/transport-push
+// │   ├── sms/                       # @notifyc/transport-sms
+// │   ├── webhook/                   # @notifyc/transport-webhook
+// │   └── inapp/                     # @notifyc/transport-inapp
 // │
 // ├── queue-adapters/
-// │   ├── memory/                    # @synq/notifications-queue-memory
-// │   ├── redis/                     # @synq/notifications-queue-redis
-// │   └── bullmq/                    # @synq/notifications-queue-bullmq
+// │   ├── memory/                    # @notifyc/queue-memory
+// │   ├── redis/                     # @notifyc/queue-redis
+// │   └── bullmq/                    # @notifyc/queue-bullmq
 // │
 // ├── bindings/
-// │   ├── react/                     # @synq/notifications-react
-// │   ├── vue/                       # @synq/notifications-vue
-// │   ├── nestjs/                    # @synq/notifications-nestjs
-// │   ├── express/                   # @synq/notifications-express
+// │   ├── react/                     # @notifyc/react
+// │   ├── vue/                       # @notifyc/vue
+// │   ├── nestjs/                    # @notifyc/nestjs
+// │   ├── express/                   # @notifyc/express
 // │   └── flutter/                   # synq_notifications (Dart)
 // │
 // └── middleware/
-//     ├── rate-limit/                # @synq/notifications-middleware-rate-limit
-//     ├── deduplication/             # @synq/notifications-middleware-dedupe
-//     └── analytics/                 # @synq/notifications-middleware-analytics
+//     ├── rate-limit/                # @notifyc/middleware-rate-limit
+//     ├── deduplication/             # @notifyc/middleware-dedupe
+//     └── analytics/                 # @notifyc/middleware-analytics

@@ -52,14 +52,47 @@ var NotificationCenter = class {
     return notifications;
   }
   async sendMulticast(input) {
-    const notificationInputs = [];
-    for (const userId of input.userIds) {
-      notificationInputs.push({
-        ...input,
-        userId
-      });
+    const notifications = await Promise.all(input.userIds.map(async (userId) => {
+      const notificationInput = { ...input, userId };
+      let notification = this.buildNotification(notificationInput);
+      notification = await this.applyBeforeSendMiddleware(notification);
+      return notification;
+    }));
+    const validNotifications = notifications.filter((n) => n !== null);
+    if (validNotifications.length === 0)
+      return [];
+    await this.storage.saveBatch(validNotifications);
+    const channels = input.channels !== void 0 ? input.channels : Array.from(this.transports.keys());
+    for (const channel of channels) {
+      const transport = this.transports.get(channel);
+      if (!transport)
+        continue;
+      try {
+        if (transport.sendMulticast) {
+          if (channel === "push" || channel === "sms") {
+            await Promise.all(validNotifications.map(async (n) => {
+              const field = channel === "push" ? "deviceToken" : "phoneNumber";
+              if (!n.data?.[field]) {
+                const prefs = await this.storage.getPreferences(n.userId);
+                if (prefs.data?.[field]) {
+                  n.data = { ...n.data || {}, [field]: prefs.data[field] };
+                }
+              }
+            }));
+          }
+          const receipts = await transport.sendMulticast(validNotifications, {});
+          if (this.storage.saveReceipt) {
+            await Promise.all(receipts.map((r) => this.storage.saveReceipt(r)));
+          }
+        } else {
+          await Promise.all(validNotifications.map((n) => this.sendNow(n)));
+        }
+      } catch (error) {
+        console.error(`Multicast failed for channel ${channel}:`, error);
+        await Promise.all(validNotifications.map((n) => this.applyErrorMiddleware(error, n)));
+      }
     }
-    return this.sendBatch(notificationInputs);
+    return validNotifications;
   }
   async schedule(input, when) {
     let notification = this.buildNotification({ ...input, scheduledFor: when });
@@ -331,6 +364,7 @@ var NotificationCenter = class {
   }
   // ========== PRIVATE METHODS ==========
   buildNotification(input) {
+    const allChannels = Array.from(this.transports.keys());
     if (input.template) {
       const template = this.templates.get(input.template);
       if (!template) {
@@ -338,11 +372,15 @@ var NotificationCenter = class {
       }
       const title = typeof template.defaults.title === "function" ? template.defaults.title(input.data) : template.defaults.title;
       const body = typeof template.defaults.body === "function" ? template.defaults.body(input.data) : template.defaults.body;
+      const text = input.text || (typeof template.defaults.text === "function" ? template.defaults.text(input.data) : template.defaults.text);
+      const html = input.html || (typeof template.defaults.html === "function" ? template.defaults.html(input.data) : template.defaults.html);
       return {
         id: this.generateId(),
         type: input.type || template.type,
         title: input.title || title,
         body: input.body || body,
+        text,
+        html,
         data: input.data,
         userId: input.userId,
         groupId: input.groupId,
@@ -352,7 +390,9 @@ var NotificationCenter = class {
         createdAt: /* @__PURE__ */ new Date(),
         scheduledFor: input.scheduledFor,
         expiresAt: input.expiresAt || (template.defaults.expiresIn ? new Date(Date.now() + template.defaults.expiresIn) : void 0),
-        channels: input.channels.length ? input.channels : template.defaults.channels,
+        // If channels are explicitly provided (even if empty), use them. 
+        // Otherwise use template defaults.
+        channels: input.channels !== void 0 ? input.channels : template.defaults.channels,
         actions: input.actions
       };
     }
@@ -361,6 +401,8 @@ var NotificationCenter = class {
       type: input.type,
       title: input.title,
       body: input.body,
+      text: input.text,
+      html: input.html,
       data: input.data,
       userId: input.userId,
       groupId: input.groupId,
@@ -370,7 +412,9 @@ var NotificationCenter = class {
       createdAt: /* @__PURE__ */ new Date(),
       scheduledFor: input.scheduledFor,
       expiresAt: input.expiresAt,
-      channels: input.channels,
+      // If channels are explicitly provided (even if empty), use them. 
+      // Otherwise default to all registered transports.
+      channels: input.channels !== void 0 ? input.channels : allChannels,
       actions: input.actions
     };
   }
@@ -382,11 +426,12 @@ var NotificationCenter = class {
         if (!transport) {
           return null;
         }
-        if (!transport.canSend(notification, prefs)) {
+        const channelNotification = this.castNotification(notification, channel);
+        if (!transport.canSend(channelNotification, prefs)) {
           return null;
         }
         try {
-          const receipt = await transport.send(notification, prefs);
+          const receipt = await transport.send(channelNotification, prefs);
           if (this.storage.saveReceipt) {
             await this.storage.saveReceipt(receipt);
           }
@@ -415,13 +460,29 @@ var NotificationCenter = class {
       notification.status = "sent";
     }
     await this.applyAfterSendMiddleware(notification);
-    this.notifySubscribers(notification);
+    if (notification.channels.includes("inapp")) {
+      this.notifySubscribers(notification);
+    }
     this.notifyEventSubscribers({
       type: "sent",
       notification,
       timestamp: /* @__PURE__ */ new Date()
     });
     await this.storage.save(notification);
+  }
+  castNotification(notification, channel) {
+    switch (channel) {
+      case "email":
+        return notification;
+      case "sms":
+        return notification;
+      case "push":
+        return notification;
+      case "inapp":
+        return notification;
+      default:
+        return notification;
+    }
   }
   startWorker() {
     const pollInterval = this.config.workers?.pollInterval || 1e3;

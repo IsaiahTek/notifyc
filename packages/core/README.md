@@ -295,11 +295,11 @@ Use framework-specific bindings for seamless integration:
 ### React
 
 ```bash
-npm install @synq/notifications-react
+npm install @notifyc/react
 ```
 
 ```tsx
-import { NotificationProvider, useNotifications } from '@synq/notifications-react';
+import { NotificationProvider, useNotifications } from '@notifyc/react';
 
 function App() {
   return (
@@ -323,11 +323,11 @@ function NotificationBell() {
 ### NestJS
 
 ```bash
-npm install @synq/notifications-nestjs
+npm install @notifyc/nestjs
 ```
 
 ```typescript
-import { NotificationsModule } from '@synq/notifications-nestjs';
+import { NotificationsModule } from '@notifyc/nestjs';
 
 @Module({
   imports: [

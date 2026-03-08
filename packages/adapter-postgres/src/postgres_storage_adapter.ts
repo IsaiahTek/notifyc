@@ -12,7 +12,7 @@ import {
   DeliveryReceipt,
   NotificationStatus
 } from '@notifyc/core';
-import { MIGRATIONS } from '../db/migrations';
+import { MIGRATIONS } from './db/migrations';
 
 // ============================================================================
 // CONFIGURATION
@@ -245,6 +245,26 @@ export class PostgresStorageAdapter implements StorageAdapter {
       UPDATE ${this.tablePrefix}notifications
       SET status = 'read', read_at = NOW()
       WHERE user_id = $1 AND status != 'read'
+    `;
+
+    await this.pool.query(query, [userId]);
+  }
+
+  async markAsUnread(id: string): Promise<void> {
+    const query = `
+      UPDATE ${this.tablePrefix}notifications
+      SET status = 'pending', read_at = NULL
+      WHERE id = $1
+    `;
+
+    await this.pool.query(query, [id]);
+  }
+
+  async markAllAsUnread(userId: string): Promise<void> {
+    const query = `
+      UPDATE ${this.tablePrefix}notifications
+      SET status = 'pending', read_at = NULL
+      WHERE user_id = $1 AND status = 'read'
     `;
 
     await this.pool.query(query, [userId]);

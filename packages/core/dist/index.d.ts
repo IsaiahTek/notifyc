@@ -15,6 +15,8 @@ interface Notification {
     type: string;
     title: string;
     body: string;
+    text?: string;
+    html?: string;
     data?: Record<string, unknown>;
     userId: string;
     groupId?: string;
@@ -28,16 +30,39 @@ interface Notification {
     channels: ChannelType[];
     actions?: NotificationAction[];
 }
+interface EmailNotification extends Notification {
+    data: {
+        email?: string;
+        [key: string]: unknown;
+    };
+}
+interface SmsNotification extends Notification {
+    data: {
+        phoneNumber?: string;
+        [key: string]: unknown;
+    };
+}
+interface PushNotification extends Notification {
+    data: {
+        deviceToken?: string;
+        [key: string]: unknown;
+    };
+}
+interface InAppNotification extends Notification {
+    data?: Record<string, unknown>;
+}
 interface NotificationInput {
     type: string;
     title: string;
     body: string;
+    text?: string;
+    html?: string;
     userId: string;
     groupId?: string;
     data?: Record<string, unknown>;
     priority?: NotificationPriority;
     category?: string;
-    channels: ChannelType[];
+    channels?: ChannelType[];
     scheduledFor?: Date;
     expiresAt?: Date;
     actions?: NotificationAction[];
@@ -47,11 +72,13 @@ interface NotificationMulticastInput {
     type: string;
     title: string;
     body: string;
+    text?: string;
+    html?: string;
     userIds: string[];
     data?: Record<string, unknown>;
     priority?: NotificationPriority;
     category?: string;
-    channels: ChannelType[];
+    channels?: ChannelType[];
     scheduledFor?: Date;
     expiresAt?: Date;
     actions?: NotificationAction[];
@@ -106,6 +133,8 @@ interface NotificationTemplate {
     defaults: {
         title: string | ((data: any) => string);
         body: string | ((data: any) => string);
+        text?: string | ((data: any) => string);
+        html?: string | ((data: any) => string);
         channels: ChannelType[];
         priority: NotificationPriority;
         category?: string;
@@ -146,6 +175,7 @@ interface TransportAdapter {
     name: ChannelType;
     send(notification: Notification, preferences: NotificationPreferences): Promise<DeliveryReceipt>;
     sendBatch?(notifications: Notification[], preferences: NotificationPreferences): Promise<DeliveryReceipt[]>;
+    sendMulticast?(notifications: Notification[], preferences: NotificationPreferences): Promise<DeliveryReceipt[]>;
     canSend(notification: Notification, preferences: NotificationPreferences): boolean;
     healthCheck?(): Promise<boolean>;
 }
@@ -243,6 +273,7 @@ declare class NotificationCenter {
     healthCheck(): Promise<Record<string, boolean>>;
     private buildNotification;
     private sendNow;
+    private castNotification;
     private startWorker;
     private startCleanup;
     private applyBeforeSendMiddleware;
@@ -300,4 +331,4 @@ declare class MemoryStorageAdapter implements StorageAdapter {
     getReceipts(notificationId: string): Promise<DeliveryReceipt[]>;
 }
 
-export { ChannelFrequency, ChannelPreferences, ChannelType, ConsoleTransportAdapter, DeliveryReceipt, DeliveryStatus, DigestConfig, DigestFrequency, MemoryQueueAdapter, MemoryStorageAdapter, Notification, NotificationAction, NotificationCenter, NotificationConfig, NotificationEvent, NotificationFilters, NotificationInput, NotificationMiddleware, NotificationMulticastInput, NotificationPreferences, NotificationPriority, NotificationStats, NotificationStatus, NotificationTemplate, QueueAdapter, QuietHours, StorageAdapter, TransportAdapter, Unsubscribe };
+export { ChannelFrequency, ChannelPreferences, ChannelType, ConsoleTransportAdapter, DeliveryReceipt, DeliveryStatus, DigestConfig, DigestFrequency, EmailNotification, InAppNotification, MemoryQueueAdapter, MemoryStorageAdapter, Notification, NotificationAction, NotificationCenter, NotificationConfig, NotificationEvent, NotificationFilters, NotificationInput, NotificationMiddleware, NotificationMulticastInput, NotificationPreferences, NotificationPriority, NotificationStats, NotificationStatus, NotificationTemplate, PushNotification, QueueAdapter, QuietHours, SmsNotification, StorageAdapter, TransportAdapter, Unsubscribe };

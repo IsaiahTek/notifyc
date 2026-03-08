@@ -9,14 +9,14 @@ This guide shows you how to set up a complete production notification system usi
 npm install @notifyc/core
 
 # Storage
-npm install @synq/notifications-storage-postgres pg
+npm install @notifyc/adapter-postgres pg
 
 # Transports
-npm install @synq/notifications-transport-firebase firebase-admin
-npm install @synq/notifications-transport-sendgrid @sendgrid/mail
+npm install @notifyc/adapter-fcm firebase-admin
+npm install @notifyc/adapter-sendgrid @sendgrid/mail
 
 # Queue
-npm install @synq/notifications-queue-redis bullmq ioredis
+npm install @notifyc/queue-redis bullmq ioredis
 ```
 
 ## 🔧 Environment Setup
@@ -78,7 +78,7 @@ Create a migration file:
 
 ```typescript
 // migrations/001_create_notifications_tables.ts
-import { PostgresStorageAdapter } from '@synq/notifications-storage-postgres';
+import { PostgresStorageAdapter } from '@notifyc/adapter-postgres';
 
 export async function up() {
   const storage = new PostgresStorageAdapter({
@@ -420,10 +420,10 @@ export function registerTemplates(center: NotificationCenter) {
 ```typescript
 // src/notifications/index.ts
 import { NotificationCenter } from '@notifyc/core';
-import { PostgresStorageAdapter } from '@synq/notifications-storage-postgres';
-import { FirebasePushAdapter } from '@synq/notifications-transport-firebase';
-import { SendGridEmailAdapter } from '@synq/notifications-transport-sendgrid';
-import { RedisQueueAdapter } from '@synq/notifications-queue-redis';
+import { PostgresStorageAdapter } from '@notifyc/adapter-postgres';
+import { FirebasePushAdapter } from '@notifyc/adapter-fcm';
+import { SendGridEmailAdapter } from '@notifyc/adapter-sendgrid';
+import { RedisQueueAdapter } from '@notifyc/queue-redis';
 import Redis from 'ioredis';
 import { DeviceTokenService } from './services/device-tokens';
 import { UserEmailService } from './services/user-emails';
