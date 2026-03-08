@@ -435,6 +435,7 @@ var NotificationCenter = class {
         try {
           console.log(`[NotificationCenter] Attempting delivery through transport: ${channel}`);
           const receipt = await transport.send(channelNotification, prefs);
+          console.log(`[NotificationCenter] Delivery completed for transport: ${channel}`);
           if (this.storage.saveReceipt) {
             await this.storage.saveReceipt(receipt);
           }
