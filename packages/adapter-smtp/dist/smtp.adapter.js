@@ -55,6 +55,7 @@ class SmtpProvider {
             };
         }
         catch (error) {
+            console.error(`[SMTP] Error sending email to ${notification.data?.email}:`, error);
             return {
                 notificationId: notification.id,
                 channel: 'email',
