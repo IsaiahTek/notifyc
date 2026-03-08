@@ -38,16 +38,17 @@
     "realtime",
     "framework-agnostic"
   ],
-  "author": "Your Name",
+  "author": "Engr., Isaiah Pius E.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/synq-notifications"
+    "url": "git+https://github.com/IsaiahTek/notifyc.git",
+    "directory": "packages/core"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/synq-notifications/issues"
+    "url": "https://github.com/IsaiahTek/notifyc/issues"
   },
-  "homepage": "https://github.com/yourusername/synq-notifications#readme",
+  "homepage": "https://github.com/IsaiahTek/notifyc/tree/main/packages/core#readme",
   "devDependencies": {
     "@types/jest": "^29.5.0",
     "@types/node": "^24.9.2",

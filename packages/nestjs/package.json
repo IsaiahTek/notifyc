@@ -12,7 +12,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/IsaiahTek/notifyc-nestjs.git"
+    "url": "git+https://github.com/IsaiahTek/notifyc.git",
+    "directory": "packages/nestjs"
   },
   "keywords": [
     "notify",
@@ -29,9 +30,9 @@
   "author": "Engr., Isaiah Pius E.",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/IsaiahTek/notifyc-nestjs/issues"
+    "url": "https://github.com/IsaiahTek/notifyc/issues"
   },
-  "homepage": "https://github.com/IsaiahTek/notifyc-nestjs#readme",
+  "homepage": "https://github.com/IsaiahTek/notifyc/tree/main/packages/nestjs#readme",
   "peerDependencies": {
     "@nestjs/common": "^10.0.0 || ^11.0.0",
     "@nestjs/websockets": "^10.0.0 || ^11.0.0",
@@ -52,6 +53,6 @@
     "typescript": "^5.5.0"
   },
   "dependencies": {
-    "@notifyc/core": "github:IsaiahTek/notify-core"
+    "@notifyc/core": "*"
   }
 }

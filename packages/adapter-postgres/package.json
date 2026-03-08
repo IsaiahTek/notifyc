@@ -14,6 +14,15 @@
   "peerDependencies": {
     "@notifyc/core": "*"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IsaiahTek/notifyc.git",
+    "directory": "packages/adapter-postgres"
+  },
+  "bugs": {
+    "url": "https://github.com/IsaiahTek/notifyc/issues"
+  },
+  "homepage": "https://github.com/IsaiahTek/notifyc/tree/main/packages/adapter-postgres#readme",
   "devDependencies": {
     "@types/jest": "^29.5.0",
     "@types/pg": "^8.11.0",
