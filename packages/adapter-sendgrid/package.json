@@ -16,7 +16,7 @@
   "bugs": {
     "url": "https://github.com/IsaiahTek/notifyc/issues"
   },
-  "homepage": "https://github.com/IsaiahTek/notifyc/tree/main/packages/adapter-sendgrid#readme",
+  "homepage": "https://github.com/IsaiahTek/notifyc#readme",
   "dependencies": {
     "@sendgrid/mail": "^7.7.0"
   },

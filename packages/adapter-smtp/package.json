@@ -16,7 +16,7 @@
   "bugs": {
     "url": "https://github.com/IsaiahTek/notifyc/issues"
   },
-  "homepage": "https://github.com/IsaiahTek/notifyc/tree/main/packages/adapter-smtp#readme",
+  "homepage": "https://github.com/IsaiahTek/notifyc#readme",
   "dependencies": {
     "nodemailer": "^6.9.0"
   },
