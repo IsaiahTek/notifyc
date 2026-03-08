@@ -1,0 +1,28 @@
+{
+  "name": "@notifyc/adapter-postgres",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IsaiahTek/notifyc.git",
+    "directory": "packages/adapter-postgres"
+  },
+  "bugs": {
+    "url": "https://github.com/IsaiahTek/notifyc/issues"
+  },
+  "homepage": "https://github.com/IsaiahTek/notifyc/tree/main/packages/adapter-postgres#readme",
+  "dependencies": {
+    "pg": "^8.11.0"
+  },
+  "peerDependencies": {
+    "@notifyc/core": "*"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.0",
+    "typescript": "^5.0.0"
+  }
+}

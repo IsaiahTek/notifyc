@@ -1,0 +1,18 @@
+{
+  "name": "notifyc-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "dependencies": {
+    "firebase-admin": "^13.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IsaiahTek/notifyc.git"
+  },
+  "bugs": {
+    "url": "https://github.com/IsaiahTek/notifyc/issues"
+  },
+  "homepage": "https://github.com/IsaiahTek/notifyc#readme"
+}
