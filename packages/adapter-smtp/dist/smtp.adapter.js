@@ -9,6 +9,7 @@ class SmtpProvider {
     constructor({ host, port, user, pass, fromEmail }) {
         this.name = 'email';
         this.fromEmail = fromEmail;
+        console.log(`[SMTP] Initializing SmtpProvider for ${host}:${port} (from: ${fromEmail})`);
         this.transporter = nodemailer_1.default.createTransport({
             host,
             port,
