@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "moduleResolution": "node",
+    "rootDir": "src",
+    "outDir": "dist",
+    "strict": true,
+    "declaration": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    
+    // 👇 FIX: Use the Experimental Decorator System required by NestJS
+    // "useDecorators": false, // 🛑 Disable the new standard
+    "emitDecoratorMetadata": true, // ✅ Must be TRUE for DI metadata
+    "experimentalDecorators": true, // ✅ Must be TRUE to enable them
+    
+    "useDefineForClassFields": false // This is correct for NestJS
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"]
+}
