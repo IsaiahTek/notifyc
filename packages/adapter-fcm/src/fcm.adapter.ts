@@ -4,7 +4,7 @@ import { DeliveryReceipt, TransportAdapter, ChannelType, NotificationPreferences
 export class FcmProvider implements TransportAdapter {
     name: ChannelType = 'push';
 
-    constructor(private app?: admin.app.App) {
+    constructor(private app?: admin.messaging.Messaging) {
         if (!this.app && admin.apps.length === 0) {
             throw new Error('Firebase Admin SDK not initialized and no app provided.');
         }
@@ -33,7 +33,7 @@ export class FcmProvider implements TransportAdapter {
                 data: notification.data as Record<string, string>,
             };
 
-            const response = await (this.app || admin).messaging().send(message);
+            const response = await (this.app)?.send(message);
 
             return {
                 notificationId: notification.id,
@@ -83,9 +83,9 @@ export class FcmProvider implements TransportAdapter {
         }
 
         try {
-            const batchResponse = await (this.app || admin).messaging().sendEach(messages);
+            const batchResponse = await (this.app)?.sendEach(messages);
 
-            batchResponse.responses.forEach((res: admin.messaging.SendResponse, index: number) => {
+            batchResponse?.responses.forEach((res: admin.messaging.SendResponse, index: number) => {
                 const notification = validNotifications[index];
                 if (res.success) {
                     receipts.push({
@@ -167,9 +167,9 @@ export class FcmProvider implements TransportAdapter {
                     data: group.data,
                 };
 
-                const batchResponse = await (this.app || admin).messaging().sendEachForMulticast(message);
+                const batchResponse = await (this.app)?.sendEachForMulticast(message);
 
-                batchResponse.responses.forEach((res: admin.messaging.SendResponse, index: number) => {
+                batchResponse?.responses.forEach((res: admin.messaging.SendResponse, index: number) => {
                     const originalNotif = group.originalNotifications[index];
                     if (res.success) {
                         receipts.push({
